@@ -1,0 +1,11 @@
+Testsuite: cis501.submission.InorderPipelineSampleTest
+Tests run: 8, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.025 sec
+
+Testcase: testLoadUse1 took 0.003 sec
+Testcase: testLoadUse2 took 0 sec
+Testcase: testLoadUseStoreValue took 0 sec
+Testcase: testLoadUseStoreAddress took 0 sec
+Testcase: test1Uop took 0 sec
+Testcase: test1MemUop took 0 sec
+Testcase: testManyUops took 0 sec
+Testcase: testManyMemUops took 0 sec

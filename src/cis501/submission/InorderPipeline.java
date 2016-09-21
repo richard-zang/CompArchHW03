@@ -4,6 +4,7 @@ package cis501.submission;
 import cis501.*;
 
 import java.util.Set;
+import java.util.Iterator;
 
 /**
  * Note: Stages are declared in "reverse" order to simplify iterating over them in reverse order,
@@ -40,8 +41,7 @@ public class InorderPipeline implements IInorderPipeline {
 		this.additionalMemLatency = additionalMemLatency;
 		this.bypasses = bypasses;
 		latches = new Insn[5];
-		moveToNextStage = new boolean[5];
-		dependenciesUnmet = new boolean[5];
+
 		instructionCount = 0;
 		cycleCount = 0;
     }
@@ -50,10 +50,10 @@ public class InorderPipeline implements IInorderPipeline {
 	private Set<Bypass> bypasses;
 	private Insn[] latches;
 	private int currentMemoryTimer;
-	private int instructionCount;
-	private int cycleCount;
-	private boolean[] moveToNextStage;
-	private boolean[] dependenciesUnmet;
+	private long instructionCount;
+	private long cycleCount;
+	private boolean mInsnCanAdvance;
+	private boolean dInsnCanAdvance;
 
 	private boolean latchesEmpty(){
 		for(int i = 0; i < 5; i++){
@@ -62,29 +62,36 @@ public class InorderPipeline implements IInorderPipeline {
 		return true;
 	}
 	private void advanceLatchInsns(Iterator<Insn> instructionIterator){
+		Insn w_Insn = latches[Stage.WRITEBACK.i()];
+		Insn m_Insn = latches[Stage.MEMORY.i()];
+		Insn x_Insn = latches[Stage.EXECUTE.i()];
+		Insn d_Insn = latches[Stage.DECODE.i()];
+		Insn f_Insn = latches[Stage.FETCH.i()];
+
 		//WRITEBACK
 		latches[Stage.WRITEBACK.i()] = null;
 
 		//MEMORY
-		if(moveToNextStage[Stage.MEMORY.i()]){
+		if(mInsnCanAdvance){
 			latches[Stage.WRITEBACK.i()] = latches[Stage.MEMORY.i()];
-			dependenciesUnmet[Stage.MEMORY.i()] = true;
+			latches[Stage.MEMORY.i()] = null;
 		}
 
 		//EXECUTE
-		if(moveToNextStage[Stage.EXECUTE.i()]){
+		if(latches[Stage.MEMORY.i()] == null){
 			latches[Stage.MEMORY.i()] = latches[Stage.EXECUTE.i()];
-			dependenciesUnmet[Stage.EXECUTE.i()] = true;
+			currentMemoryTimer = 0;
+			latches[Stage.EXECUTE.i()] = null;
 		}
 
 		//DECODE
-		if(moveToNextStage[Stage.DECODE.i()]){
+		if(dInsnCanAdvance && (latches[Stage.EXECUTE.i()] == null)){
 			latches[Stage.EXECUTE.i()] = latches[Stage.DECODE.i()];
-			dependenciesUnmet[Stage.DECODE.i()] = true;
+			latches[Stage.DECODE.i()] = null;
 		}
 
 		//FETCH
-		if(moveToNextStage[Stage.FETCH.i()]){
+		if(latches[Stage.DECODE.i()] == null){
 			latches[Stage.DECODE.i()] = latches[Stage.FETCH.i()];
 
 			if(instructionIterator.hasNext()){
@@ -97,37 +104,43 @@ public class InorderPipeline implements IInorderPipeline {
 		}
 	}
 	private void checkDelays(){
-		//WRITEBACK
-		//No instruction in the WRITEBACK stage will ever stall.
-		moveToNextStage[Stage.WRITEBACK.i()] = true;
-
-		//MEMORY
-		//Instructions may stall due to memory latency.
-		
-		moveToNextStage[Stage.MEMORY.i()] = (currentMemoryTimer == additionalMemoryLatency);
-
-		//EXECUTE
-		moveToNextStage[Stage.EXECUTE.i()] = moveToNextStage[Stage.MEMORY.i()];
-
-		//DECODE
-		//DECODE may be unable to move to the next stage due to load-use issues.
 		Insn w_Insn = latches[Stage.WRITEBACK.i()];
 		Insn m_Insn = latches[Stage.MEMORY.i()];
 		Insn x_Insn = latches[Stage.EXECUTE.i()];
 		Insn d_Insn = latches[Stage.DECODE.i()];
-		if((x_Insn != null) && (d_Insn != null)  && (x_Insn.mem == MemoryOp.Load)
-			&& ((d_Insn.srcReg2 == x_Insn.dstReg)
-				|| ((d_Insn.srcReg1 == x_Insn.dstReg) && d_Insn.mem != MemoryOp.Store))){
-			moveToNextStage[Stage.DECODE.i()] = false;
+
+
+		//WRITEBACK
+		//No instruction in the WRITEBACK stage will ever stall.
+
+		//MEMORY
+		//Instructions may stall due to memory latency.
+		if(m_Insn != null && m_Insn.mem != null){
+			mInsnCanAdvance = (currentMemoryTimer >= additionalMemLatency);
 		}
 		else {
-			//It is possible that even if there is no load-use dependency, Execute may stall.
-			moveToNextStage[Stage.DECODE.i()] = moveToNextStage[Stage.EXECUTE.i()];
+			mInsnCanAdvance = true;
+		}
+		//EXECUTE
+		//EXECUTE will never stall.
+		
+		//DECODE
+		//DECODE may be unable to move to the next stage due to load-use issues.
+		if(bypasses.equals(Bypass.FULL_BYPASS)){
+			if((d_Insn != null) && (x_Insn != null)  && (x_Insn.mem == MemoryOp.Load)
+				&& ((d_Insn.srcReg2 == x_Insn.dstReg) || ((d_Insn.srcReg1 == x_Insn.dstReg) && (d_Insn.mem != MemoryOp.Store)))){
+				dInsnCanAdvance = false;
+			}
+			else {
+				dInsnCanAdvance = true;
+			}
+		}
+		else {
+			//All other combinations of bypasses
 		}
 
 		//FETCH
-		//The only reason FETCH would be unable to move to the next stage is if DECODE is unable to move to the next stage.
-		moveToNextStage[Stage.FETCH.i()] = moveToNextStage[Stage.DECODE.i()];
+		//FETCH will never cause a stall.
 	}
 
     @Override
@@ -138,10 +151,9 @@ public class InorderPipeline implements IInorderPipeline {
     @Override
     public void run(Iterable<Insn> ii) {
 		Iterator<Insn> instructionIterator = ii.iterator();
-
 		while(instructionIterator.hasNext() || !latchesEmpty()){
 			checkDelays();
-			advanceLatchInsn(instructionIterator);
+			advanceLatchInsns(instructionIterator);
 
 			currentMemoryTimer++;
 			cycleCount++;
