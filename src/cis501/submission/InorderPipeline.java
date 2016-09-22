@@ -156,7 +156,7 @@ public class InorderPipeline implements IInorderPipeline {
         // This depedency can be solved by a WX bypass.
         boolean wxDep = dataDependecy(dInsn, mInsn);
 
-        // Check our bypasses and see if they would resolve any dependencies.
+        // Check our bypasses and see if they would resolve any dependencies:
         if(bypasses.contains(Bypass.MX) && mxDep)
             dxDep = false;
         // We can only use WX bypass if we know the instruction in memory
@@ -175,6 +175,7 @@ public class InorderPipeline implements IInorderPipeline {
 
         //FETCH
         //FETCH will never cause a stall.
+
     }
 
     /**
