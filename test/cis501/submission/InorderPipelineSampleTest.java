@@ -12,7 +12,7 @@ import java.util.List;
 
 import static org.junit.Assert.assertEquals;
 
-public class InorderPipelineSampleTest {
+public class InorderPipelineSampleTest{
 
     private static IInorderPipeline sim;
 
@@ -120,6 +120,20 @@ public class InorderPipelineSampleTest {
         List<Insn> insns = new LinkedList<>();
         insns.add(makeInsn(3, 1, 2, MemoryOp.Load));
         insns.add(makeInsn(5, 3, 4, MemoryOp.Store)); // load to src reg 1 (store value), so no stall
+        sim.run(insns);
+        assertEquals(2, sim.getInsns());
+        // 123456789abcdef
+        // fdxmw |
+        //  fdxmw|
+        final long expected = 6 + 1;
+        assertEquals(expected, sim.getCycles());
+    }
+
+    @Test
+    public void testMemExeBypass1(){
+        List<Insn> insns = new LinkedList<>();
+        insns.add(makeInsn(3, 2, 1, null));
+        insns.add(makeInsn(5, 3, 2, MemoryOp.Store));
         sim.run(insns);
         assertEquals(2, sim.getInsns());
         // 123456789abcdef

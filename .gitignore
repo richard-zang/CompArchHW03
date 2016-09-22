@@ -1,3 +1,6 @@
 *.class
 *.txt
 *.jar
+*~
+junit-report/
+target/

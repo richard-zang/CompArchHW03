@@ -53,7 +53,7 @@ public class InorderPipeline implements IInorderPipeline {
     private long instructionCount;
     private long cycleCount;
     private boolean mInsnCanAdvance;
-    private boolean dInsnCanAdvance;
+    private boolean dInsnCanAdvance = false;
 
     private boolean latchesEmpty(){
         for(int i = 0; i < 5; i++){
@@ -124,10 +124,10 @@ public class InorderPipeline implements IInorderPipeline {
     }
 
     private void checkDelays(){
-        Insn w_Insn = getLatch(Stage.WRITEBACK);
-        Insn m_Insn = getLatch(Stage.MEMORY);
-        Insn x_Insn = getLatch(Stage.EXECUTE);
-        Insn d_Insn = getLatch(Stage.DECODE);
+        Insn wInsn = getLatch(Stage.WRITEBACK);
+        Insn mInsn = getLatch(Stage.MEMORY);
+        Insn xInsn = getLatch(Stage.EXECUTE);
+        Insn dInsn = getLatch(Stage.DECODE);
 
 
         //WRITEBACK
@@ -135,29 +135,64 @@ public class InorderPipeline implements IInorderPipeline {
 
         //MEMORY
         //Instructions may stall due to memory latency.
-        if(m_Insn != null && m_Insn.mem != null){
+        mInsnCanAdvance = true;
+        if(mInsn != null && mInsn.mem != null)
             mInsnCanAdvance = (currentMemoryTimer >= additionalMemLatency);
-        }
-        else {
-            mInsnCanAdvance = true;
-        }
+
         //EXECUTE
         //EXECUTE will never stall.
 
         //DECODE
-        //DECODE may be unable to move to the next stage due to load-use issues.
+        //DECODE may be unable to move to the next stage due to load-to-use issues.
+
+        // This depedency can be solved by a MX bypass.
+        boolean mxDep = dataDependecy(dInsn, xInsn);
+        // This depedency can be solved by a WX bypass.
+        boolean wxDep = dataDependecy(dInsn, mInsn);
+        // This depedency can be solved by a WM bypass. This happens when
+        // we have a load or a store so we wait until the mem stage is done.
+        boolean wmDep = dataDependecy(dInsn, xInsn) &&
+            (xInsn.mem == MemoryOp.Store || xInsn.mem == MemoryOp.Load);
+        // This dependency happens when the 2nd insn is at write state
+        // and 1st isns must way 2nd to finish.
+        boolean wdDep = dataDependecy(dInsn, wInsn);
+
+        // Check our bypasses and see if they would resolve any dependencies.
+        if( bypasses.contains(Bypass.MX) ){
+            mxDep = false;
+        }
+        if( bypasses.contains(Bypass.WX) ){
+            wxDep = false;
+        }
+        // TODO: Consider case where we write to adress input instead of data input!
+        // Slide #39.
+        if( bypasses.contains(Bypass.WM) ){
+            wmDep = false;
+        }
+
+        dInsnCanAdvance = ! (mxDep || wxDep || mxDep || wdDep);
+
         if( bypasses.equals(Bypass.FULL_BYPASS) ){
             dInsnCanAdvance =
-                ! (d_Insn != null && x_Insn != null && x_Insn.mem == MemoryOp.Load &&
-                   (d_Insn.srcReg2 == x_Insn.dstReg ||
-                    (d_Insn.srcReg1 == x_Insn.dstReg && d_Insn.mem != MemoryOp.Store)));
-        }
-        else {
-            //All other combinations of bypasses
+                !(dInsn != null && xInsn != null &&
+                  xInsn.mem == MemoryOp.Load &&
+                  (dInsn.srcReg2 == xInsn.dstReg ||
+                  (dInsn.srcReg1 == xInsn.dstReg && dInsn.mem != MemoryOp.Store)));
         }
 
         //FETCH
         //FETCH will never cause a stall.
+    }
+
+    /**
+     * Returns whether we have some data dependency between two instructions
+     * on the latches.
+     */
+    private boolean dataDependecy(Insn decodeInsn, Insn otherInsn){
+        if(decodeInsn == null || otherInsn == null)
+            return false;
+        return decodeInsn.srcReg1 == otherInsn.dstReg ||
+            decodeInsn.srcReg2 == otherInsn.dstReg;
     }
 
     @Override
