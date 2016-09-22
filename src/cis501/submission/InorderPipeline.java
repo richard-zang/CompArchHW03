@@ -145,40 +145,32 @@ public class InorderPipeline implements IInorderPipeline {
         //DECODE
         //DECODE may be unable to move to the next stage due to load-to-use issues.
 
+        // Check for any sort of dependency.
+        boolean dxDep = dataDependecy(dInsn, xInsn);
+        boolean dmDep = dataDependecy(dInsn, mInsn);
+
+
         // This depedency can be solved by a MX bypass.
-        boolean mxDep = dataDependecy(dInsn, xInsn);
+        boolean mxDep = dataDependecy(dInsn, xInsn) &&
+            xInsn.mem != MemoryOp.Load;
+
         // This depedency can be solved by a WX bypass.
         boolean wxDep = dataDependecy(dInsn, mInsn);
-        // This depedency can be solved by a WM bypass. This happens when
-        // we have a load or a store so we wait until the mem stage is done.
-        boolean wmDep = dataDependecy(dInsn, xInsn) &&
-            (xInsn.mem == MemoryOp.Store || xInsn.mem == MemoryOp.Load);
-        // This dependency happens when the 2nd insn is at write state
-        // and 1st isns must way 2nd to finish.
-        boolean wdDep = dataDependecy(dInsn, wInsn);
 
         // Check our bypasses and see if they would resolve any dependencies.
-        if( bypasses.contains(Bypass.MX) ){
-            mxDep = false;
-        }
-        if( bypasses.contains(Bypass.WX) ){
-            wxDep = false;
-        }
-        // TODO: Consider case where we write to adress input instead of data input!
-        // Slide #39.
-        if( bypasses.contains(Bypass.WM) ){
-            wmDep = false;
-        }
+        if(bypasses.contains(Bypass.MX) && mxDep)
+            dxDep = false;
+        if(bypasses.contains(Bypass.WX) && wxDep)
+            dmDep = false;
 
-        dInsnCanAdvance = ! (mxDep || wxDep || mxDep || wdDep);
+        // Case where we have a Load followed by a store. No problem! B)
+        // Check to make sure we are not writing to dInsn's second register!
+        if(dInsn != null && xInsn != null &&
+           dInsn.mem == MemoryOp.Store && xInsn.mem == MemoryOp.Load
+           && xInsn.dstReg != dInsn.srcReg2)
+            dxDep = false;
 
-        if( bypasses.equals(Bypass.FULL_BYPASS) ){
-            dInsnCanAdvance =
-                !(dInsn != null && xInsn != null &&
-                  xInsn.mem == MemoryOp.Load &&
-                  (dInsn.srcReg2 == xInsn.dstReg ||
-                  (dInsn.srcReg1 == xInsn.dstReg && dInsn.mem != MemoryOp.Store)));
-        }
+        dInsnCanAdvance = ! (dmDep || dxDep);
 
         //FETCH
         //FETCH will never cause a stall.

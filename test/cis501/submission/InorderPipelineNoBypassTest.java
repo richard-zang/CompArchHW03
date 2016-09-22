@@ -36,8 +36,8 @@ public class InorderPipelineNoBypassTest {
         assertEquals(2, sim.getInsns());
         // 123456789abcdef
         // fdxmw|
-        //  f---dxmw|
-        final long expected = 7 + 3;
+        //  fd--xmw|
+        final long expected = 7 + 2;
         assertEquals(expected, sim.getCycles());
     }
 
@@ -53,8 +53,8 @@ public class InorderPipelineNoBypassTest {
         // 123456789abcdef
         // fdxmw|
         //  fdxmw|
-        //  f---dxmw|
-        final long expected = 7 + 3;
+        //  f--dxmw|
+        final long expected = 7 + 2;
         assertEquals(expected, sim.getCycles());
     }
 
@@ -72,9 +72,22 @@ public class InorderPipelineNoBypassTest {
         // fdxmw|
         //  fdxmw|
         //   fdxmw|
-        //    f-dxmw|
-        final long expected = 7 + 3;
+        //    fdxmw|
+        final long expected = 7 + 2;
         assertEquals(expected, sim.getCycles());
     }
+    @Test
+    public void testLoadToUse1(){
+        List<Insn> insns = new LinkedList<>();
+        insns.add(makeInsn(3, 8, 2, MemoryOp.Load));
+        insns.add(makeInsn(4, 2, 3, null));
+        sim.run(insns);
 
+        assertEquals(2, sim.getInsns());
+        // 123456789abcdef
+        // fdxmw|
+        //  fd--xmw|
+        final long expected = 7 + 2;
+        assertEquals(expected, sim.getCycles());
+        }
 }
