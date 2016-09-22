@@ -137,7 +137,7 @@ public class InorderPipeline implements IInorderPipeline {
         //Instructions may stall due to memory latency.
         mInsnCanAdvance = true;
         if(mInsn != null && mInsn.mem != null)
-            mInsnCanAdvance = (currentMemoryTimer >= additionalMemLatency);
+            mInsnCanAdvance = (currentMemoryTimer > additionalMemLatency);
 
         //EXECUTE
         //EXECUTE will never stall.
