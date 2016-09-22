@@ -143,4 +143,19 @@ public class InorderPipelineSampleTest{
         assertEquals(expected, sim.getCycles());
     }
 
+    @Test
+    public void testWxBypass1(){
+        List<Insn> insns = new LinkedList<>();
+        insns.add(makeInsn(1,2,3, MemoryOp.Load));
+        insns.add(makeInsn(4,1,2, null));
+        sim.run(insns);
+        assertEquals(2, sim.getInsns());
+        // 123456789abcdef
+        // fdxmw  |
+        //  fd-xmw|
+        final long expected = 8;
+        assertEquals(expected, sim.getCycles());
+    }
+
+
 }

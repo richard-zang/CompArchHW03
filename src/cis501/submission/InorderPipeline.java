@@ -149,7 +149,6 @@ public class InorderPipeline implements IInorderPipeline {
         boolean dxDep = dataDependecy(dInsn, xInsn);
         boolean dmDep = dataDependecy(dInsn, mInsn);
 
-
         // This depedency can be solved by a MX bypass.
         boolean mxDep = dataDependecy(dInsn, xInsn) &&
             xInsn.mem != MemoryOp.Load;
@@ -160,7 +159,9 @@ public class InorderPipeline implements IInorderPipeline {
         // Check our bypasses and see if they would resolve any dependencies.
         if(bypasses.contains(Bypass.MX) && mxDep)
             dxDep = false;
-        if(bypasses.contains(Bypass.WX) && wxDep)
+        // We can only use WX bypass if we know the instruction in memory
+        // will be all done in the next cycle. Else, it must keep stalling...
+        if(bypasses.contains(Bypass.WX) && wxDep && mInsnCanAdvance)
             dmDep = false;
 
         // Case where we have a Load followed by a store. No problem! B)

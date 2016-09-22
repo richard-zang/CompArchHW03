@@ -400,9 +400,9 @@ public class InorderPipelineAllBypassTest {
         sim.run(insns);
         assertEquals(insns.size(), sim.getInsns());
         // 123456789abcdef
-        // FDXM-W  |
-        //  FD--XMW|
-        final long expected = 9;
+        // FDXM-W |
+        //  FDX-MW|
+        final long expected = 8;
         assertEquals(expected, sim.getCycles());
     }
 
