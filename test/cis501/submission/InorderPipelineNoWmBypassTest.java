@@ -507,9 +507,9 @@ public class InorderPipelineNoWmBypassTest {
         sim.run(insns);
         assertEquals(insns.size(), sim.getInsns());
         // 123456789abcdef
-        // FDXM-W  |
-        //  FD-XM-W|
-        final long expected = 9;
+        // FDXM-W   |
+        //  FD--XM-W|
+        final long expected = 10;
         assertEquals(expected, sim.getCycles());
     }
 

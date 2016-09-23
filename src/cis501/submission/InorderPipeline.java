@@ -153,8 +153,13 @@ public class InorderPipeline implements IInorderPipeline {
         boolean mxDep = dataDependecy(dInsn, xInsn) &&
             xInsn.mem != MemoryOp.Load;
 
-        // This depedency can be solved by a WX bypass.
+         // This depedency can be solved by a WX bypass.
         boolean wxDep = dataDependecy(dInsn, mInsn);
+
+        // This depedency can be solved by a WM bypass.
+        boolean wmDep = dInsn != null && xInsn != null &&
+           dInsn.mem == MemoryOp.Store && xInsn.mem == MemoryOp.Load
+            && xInsn.dstReg != dInsn.srcReg2;
 
         // Check our bypasses and see if they would resolve any dependencies:
         if(bypasses.contains(Bypass.MX) && mxDep)
@@ -163,12 +168,9 @@ public class InorderPipeline implements IInorderPipeline {
         // will be all done in the next cycle. Else, it must keep stalling...
         if(bypasses.contains(Bypass.WX) && wxDep && mInsnCanAdvance)
             dmDep = false;
-
         // Case where we have a Load followed by a store. No problem! B)
         // Check to make sure we are not writing to dInsn's second register!
-        if(dInsn != null && xInsn != null &&
-           dInsn.mem == MemoryOp.Store && xInsn.mem == MemoryOp.Load
-           && xInsn.dstReg != dInsn.srcReg2)
+        if(bypasses.contains(Bypass.WM) && wmDep)
             dxDep = false;
 
         dInsnCanAdvance = ! (dmDep || dxDep);
@@ -185,8 +187,15 @@ public class InorderPipeline implements IInorderPipeline {
     private boolean dataDependecy(Insn decodeInsn, Insn otherInsn){
         if(decodeInsn == null || otherInsn == null)
             return false;
-        return decodeInsn.srcReg1 == otherInsn.dstReg ||
-            decodeInsn.srcReg2 == otherInsn.dstReg;
+        // Compare destination of first to source of second.
+        boolean srcToDst = decodeInsn.srcReg1 == otherInsn.dstReg ||
+                decodeInsn.srcReg2 == otherInsn.dstReg;
+        // Store is a special case where we must check if the destinations
+        // match!
+        boolean loadCase = decodeInsn.mem == MemoryOp.Store &&
+            otherInsn.dstReg == decodeInsn.dstReg;
+
+        return (srcToDst || loadCase);
     }
 
     @Override

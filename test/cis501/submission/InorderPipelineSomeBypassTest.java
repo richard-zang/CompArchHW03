@@ -74,6 +74,20 @@ public class InorderPipelineSomeBypassTest{
     }
 
     @Test
+    public void test4a(){
+        List<Insn> insns = new LinkedList<>();
+        sim = new InorderPipeline(2, set);
+        insns.add(makeInsn(3, 1, 2, MemoryOp.Load));
+        insns.add(makeInsn(4, 5, 3, MemoryOp.Store));
+        sim.run(insns);
+        assertEquals(2, sim.getInsns());
+        // 123456789abcdef
+        // fdxm--w    |
+        //  fd---xm--w|
+        assertEquals(12, sim.getCycles());
+    }
+
+    @Test
     public void test4(){
         List<Insn> insns = new LinkedList<>();
         sim = new InorderPipeline(2, set);
@@ -82,11 +96,11 @@ public class InorderPipelineSomeBypassTest{
         insns.add(makeInsn(4, 5, 3, MemoryOp.Store));
         sim.run(insns);
         assertEquals(3, sim.getInsns());
-        // 123456789abcdef
-        // fdxm--w       |
-        //  fd---xm--w   |
-        //   fd---x--m--w|
-        assertEquals(15, sim.getCycles());
+        // 123456789abcdefg
+        // fdxm--w        |
+        //  fd---xm--w    |
+        //   f---d---xm--w|
+        assertEquals(16, sim.getCycles());
     }
 
     @Test
@@ -197,5 +211,102 @@ public class InorderPipelineSomeBypassTest{
         // fdxmw |
         //  fdxmw|
         assertEquals(7, sim.getCycles());
+    }
+
+    @Test
+    public void test10(){
+        List<Insn> insns = new LinkedList<>();
+
+        EnumSet<Bypass> mySet = EnumSet.noneOf(Bypass.class);
+        mySet.add(Bypass.WM);
+        sim = new InorderPipeline(0, mySet);
+
+        insns.add(makeInsn(3, 1, 2, MemoryOp.Store));
+        insns.add(makeInsn(6, 4, 3, null));
+        sim.run(insns);
+
+        assertEquals(2, sim.getInsns());
+        // 123456789abcdef
+        // fdxmw   |
+        //  fd--xmw|
+        assertEquals(9, sim.getCycles());
+    }
+
+    @Test
+    public void test11(){
+        List<Insn> insns = new LinkedList<>();
+
+        EnumSet<Bypass> mySet = EnumSet.noneOf(Bypass.class);
+        mySet.add(Bypass.WM);
+        sim = new InorderPipeline(0, mySet);
+
+        insns.add(makeInsn(3, 1, 2, MemoryOp.Store));
+        insns.add(makeInsn(6, 4, 3, null));
+        insns.add(makeInsn(7, 4, 6, MemoryOp.Load));
+        sim.run(insns);
+
+        assertEquals(3, sim.getInsns());
+        // 123456789abcdef
+        // fdxmw      |
+        //  fd--xmw   |
+        //   fd----xmw|
+        assertEquals(12, sim.getCycles());
+    }
+
+    @Test
+    public void test12a(){
+        List<Insn> insns = new LinkedList<>();
+
+        EnumSet<Bypass> mySet = EnumSet.noneOf(Bypass.class);
+        mySet.add(Bypass.WM);
+        sim = new InorderPipeline(0, mySet);
+
+        insns.add(makeInsn(6, 4, 3, null));
+        insns.add(makeInsn(7, 6, 4, MemoryOp.Load)); //Reg1 no stall
+        sim.run(insns);
+
+        assertEquals(2, sim.getInsns());
+        // 123456789abcdef
+        // fdxmw   |
+        //  fd--xmw| //No MX or WX
+        assertEquals(9, sim.getCycles());
+    }
+
+    @Test
+    public void test12b(){
+        List<Insn> insns = new LinkedList<>();
+
+        EnumSet<Bypass> mySet = EnumSet.noneOf(Bypass.class);
+        mySet.add(Bypass.WM);
+        sim = new InorderPipeline(0, mySet);
+
+        insns.add(makeInsn(6, 4, 3, null));
+        insns.add(makeInsn(7, 4, 6, MemoryOp.Load));
+        sim.run(insns);
+
+        assertEquals(2, sim.getInsns());
+        // 123456789abcdef
+        // fdxmw   |
+        //  fd--xmw|
+        assertEquals(9, sim.getCycles());
+    }
+
+    @Test
+    public void test12c(){
+        List<Insn> insns = new LinkedList<>();
+
+        EnumSet<Bypass> mySet = EnumSet.noneOf(Bypass.class);
+        mySet.add(Bypass.WX);
+        sim = new InorderPipeline(0, mySet);
+
+        insns.add(makeInsn(6, 4, 3, null));
+        insns.add(makeInsn(7, 4, 6, MemoryOp.Load));
+        sim.run(insns);
+
+        assertEquals(2, sim.getInsns());
+        // 123456789abcdef
+        // fdxmw  |
+        //  fd-xmw|
+        assertEquals(8, sim.getCycles());
     }
 }

@@ -697,4 +697,23 @@ public class InorderPipelineAllBypassTest {
         final long expected = 12;
         assertEquals(expected, sim.getCycles());
     }
+
+    @Test
+    public void testFullBypass31(){
+        List<Insn> insns = new LinkedList<>();
+        insns.add(makeInsn(1,2,3, null));
+        insns.add(makeInsn(1,2,3, MemoryOp.Store));
+
+        sim = new InorderPipeline(0, Bypass.FULL_BYPASS);
+        sim.run(insns);
+
+        assertEquals(insns.size(), sim.getInsns());
+        // 123456789abcdef
+        // FDXMW |
+        //  FDXMW|
+
+        final long expected = 7;
+        assertEquals(expected, sim.getCycles());
+    }
+
 }
