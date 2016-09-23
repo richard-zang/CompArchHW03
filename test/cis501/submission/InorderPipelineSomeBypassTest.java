@@ -309,4 +309,159 @@ public class InorderPipelineSomeBypassTest{
         //  fd-xmw|
         assertEquals(8, sim.getCycles());
     }
+
+    @Test
+    public void test13(){
+        List<Insn> insns = new LinkedList<>();
+
+        EnumSet<Bypass> mySet = EnumSet.noneOf(Bypass.class);
+        mySet.add(Bypass.WX);
+        mySet.add(Bypass.WM);
+        mySet.add(Bypass.MX);
+        sim = new InorderPipeline(0, mySet);
+
+        insns.add(makeInsn(6, 4, 3, MemoryOp.Load));
+        insns.add(makeInsn(6, 6, 6, MemoryOp.Store));
+        sim.run(insns);
+
+        assertEquals(2, sim.getInsns());
+        // 123456789abcdef
+        // fdxmw  |
+        //  fd-xmw|
+        assertEquals(8, sim.getCycles());
+    }
+
+    @Test
+    public void test14(){
+        List<Insn> insns = new LinkedList<>();
+
+        EnumSet<Bypass> mySet = EnumSet.noneOf(Bypass.class);
+        mySet.add(Bypass.WM);
+        mySet.add(Bypass.MX);
+        sim = new InorderPipeline(0, mySet);
+
+        insns.add(makeInsn(6, 4, 3, MemoryOp.Load));
+        insns.add(makeInsn(6, 6, 6, MemoryOp.Store));
+        sim.run(insns);
+
+        assertEquals(2, sim.getInsns());
+        // 123456789abcdef
+        // fdxmw   |
+        //  fd--xmw|
+        assertEquals(9, sim.getCycles());
+    }
+
+    @Test
+    public void test15(){
+        List<Insn> insns = new LinkedList<>();
+
+        EnumSet<Bypass> mySet = EnumSet.noneOf(Bypass.class);
+        mySet.add(Bypass.WM);
+        mySet.add(Bypass.MX);
+        sim = new InorderPipeline(0, mySet);
+
+        insns.add(makeInsn(6, 4, 3, MemoryOp.Load));
+        insns.add(makeInsn(6, 6, 5, MemoryOp.Store));
+        sim.run(insns);
+
+        assertEquals(2, sim.getInsns());
+        // 123456789abcdef
+        // fdxmw |
+        //  fdxmw|
+        assertEquals(7, sim.getCycles());
+    }
+
+    @Test
+    public void test16(){
+        List<Insn> insns = new LinkedList<>();
+
+        EnumSet<Bypass> mySet = EnumSet.noneOf(Bypass.class);
+        mySet.add(Bypass.WM);
+        mySet.add(Bypass.MX);
+        sim = new InorderPipeline(0, mySet);
+
+        insns.add(makeInsn(6, 4, 3, MemoryOp.Load));
+        insns.add(makeInsn(6, 5, 6, MemoryOp.Store));
+        sim.run(insns);
+
+        assertEquals(2, sim.getInsns());
+        // 123456789abcdef
+        // fdxmw   |
+        //  fd--xmw|
+        assertEquals(9, sim.getCycles());
+    }
+
+    @Test
+    public void test17(){
+        List<Insn> insns = new LinkedList<>();
+
+        EnumSet<Bypass> mySet = EnumSet.noneOf(Bypass.class);
+        mySet.add(Bypass.WX);
+        sim = new InorderPipeline(0, mySet);
+
+        insns.add(makeInsn(6, 4, 3, MemoryOp.Load));
+        insns.add(makeInsn(6, 5, 6, MemoryOp.Store));
+        sim.run(insns);
+
+        assertEquals(2, sim.getInsns());
+        // 123456789abcdef
+        // fdxmw  |
+        //  fd-xmw|
+        assertEquals(8, sim.getCycles());
+    }
+
+    @Test
+    public void test18(){
+        List<Insn> insns = new LinkedList<>();
+
+        EnumSet<Bypass> mySet = EnumSet.noneOf(Bypass.class);
+        sim = new InorderPipeline(0, mySet);
+
+        insns.add(makeInsn(3, 4, 3, MemoryOp.Load));
+        insns.add(makeInsn(4, 4, 4, MemoryOp.Store));
+        sim.run(insns);
+
+        assertEquals(2, sim.getInsns());
+        // 123456789abcdef
+        // fdxmw |
+        //  fdxmw|
+        assertEquals(7, sim.getCycles());
+    }
+
+    @Test
+    public void test19(){
+        List<Insn> insns = new LinkedList<>();
+
+        EnumSet<Bypass> mySet = EnumSet.noneOf(Bypass.class);
+        sim = new InorderPipeline(3, mySet);
+
+        insns.add(makeInsn(3, 4, 3, MemoryOp.Load));
+        insns.add(makeInsn(4, 4, 4, MemoryOp.Store));
+        sim.run(insns);
+
+        assertEquals(2, sim.getInsns());
+        // 123456789abcdef
+        // fdxm---w    |
+        //  fdx---m---w|
+        assertEquals(13, sim.getCycles());
+    }
+
+    @Test
+    public void test20(){
+        List<Insn> insns = new LinkedList<>();
+
+        EnumSet<Bypass> mySet = EnumSet.noneOf(Bypass.class);
+        sim = new InorderPipeline(3, mySet);
+
+        insns.add(makeInsn(3, 4, 3, MemoryOp.Load));
+        insns.add(makeInsn(4, 4, 4, null));
+        sim.run(insns);
+
+        assertEquals(2, sim.getInsns());
+        // 123456789abcdef
+        // fdxm---w |
+        //  fdx---mw|
+        assertEquals(10, sim.getCycles());
+    }
+
 }
