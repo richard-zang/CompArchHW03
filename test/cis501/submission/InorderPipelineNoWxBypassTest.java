@@ -172,10 +172,10 @@ public class InorderPipelineNoWxBypassTest {
         sim.run(insns);
         assertEquals(insns.size(), sim.getInsns());
         // 123456789abcdef
-        // FDXMW   |
-        //  FDXMW  |
-        //   FD-XMW|
-        final long expected = 9;
+        // FDXMW    |
+        //  FDXMW   |
+        //   FD--XMW|
+        final long expected = 10;
         assertEquals(expected, sim.getCycles());
     }
 
@@ -203,8 +203,8 @@ public class InorderPipelineNoWxBypassTest {
     /*
       No MemLatency
       Load r1 <- Offset[r2]
-      Store r2 <- Offset[r3]
-      Load to store no dependency
+      Store r2 <- Offset[r1]
+      Load to store dependency
     */
     @Test
     public void testNoWxBypass10(){
@@ -215,9 +215,9 @@ public class InorderPipelineNoWxBypassTest {
         sim.run(insns);
         assertEquals(insns.size(), sim.getInsns());
         // 123456789abcdef
-        // FDXMW |
-        //  FDXMW|
-        final long expected = 7;
+        // FDXMW   |
+        //  FD--XMW|
+        final long expected = 9;
         assertEquals(expected, sim.getCycles());
     }
 
@@ -225,7 +225,7 @@ public class InorderPipelineNoWxBypassTest {
     /*
       No MemLatency
       Load r1 <- Offset[r2]
-      Store r2 <- Offset[r1]
+      Store r2 <- Offset[r3]
       Load to use dependency solved by stalling
     */
     @Test
@@ -237,9 +237,9 @@ public class InorderPipelineNoWxBypassTest {
         sim.run(insns);
         assertEquals(insns.size(), sim.getInsns());
         // 123456789abcdef
-        // FDXMW   |
-        //  FD--XMW|
-        final long expected = 9;
+        // FDXMW |
+        //  FDXMW|
+        final long expected = 7;
         assertEquals(expected, sim.getCycles());
     }
 
@@ -327,11 +327,11 @@ public class InorderPipelineNoWxBypassTest {
         sim.run(insns);
         assertEquals(insns.size(), sim.getInsns());
         // 123456789abcdef
-        // FDXMW       |
-        //  FD--XMW    |
-        //   F-D-XMW   |
-        //     FD---XMW|
-        final long expected = 13;
+        // FDXMW     |
+        //  FD--XMW  |
+        //   F--DXMW |
+        //      FDXMW|
+        final long expected = 11;
         assertEquals(expected, sim.getCycles());
     }
 
@@ -473,7 +473,7 @@ public class InorderPipelineNoWxBypassTest {
       Load r1 <- Offset[r2]
       Sub r2 <- r5 + r4
       Add r4 <- r1 + r2
-      Load to use dependency solved by WX bypass
+      Load to use dependency solved by stalling
     */
     @Test
     public void testNoWxBypass23(){
@@ -485,10 +485,10 @@ public class InorderPipelineNoWxBypassTest {
         sim.run(insns);
         assertEquals(insns.size(), sim.getInsns());
         // 123456789abcdef
-        // FDXM-W   |
-        //  FDX-MW  |
-        //   FD--XMW|
-        final long expected = 10;
+        // FDXM-W    |
+        //  FDX-MW   |
+        //   FD---XMW|
+        final long expected = 11;
         assertEquals(expected, sim.getCycles());
     }
 
@@ -507,9 +507,9 @@ public class InorderPipelineNoWxBypassTest {
         sim.run(insns);
         assertEquals(insns.size(), sim.getInsns());
         // 123456789abcdef
-        // FDXM-W   |
-        //  FDX--M-W|
-        final long expected = 10;
+        // FDXM-W  |
+        //  FDX-M-W|
+        final long expected = 9;
         assertEquals(expected, sim.getCycles());
     }
 
@@ -614,12 +614,12 @@ public class InorderPipelineNoWxBypassTest {
         sim = new InorderPipeline(1, noWxBypass);
         sim.run(insns);
         assertEquals(insns.size(), sim.getInsns());
-        // 123456789abcdefgh
-        // FDXM-W          |
-        //  FD---XM-W      |
-        //   F---D---XM-W  |
-        //      F----D--XMW|
-        final long expected = 17;
+        // 123456789abcdefghi
+        // FDXM-W           |
+        //  FD---XM-W       |
+        //   F---D---XM-W   |
+        //       F---D---XMW|
+        final long expected = 18;
         assertEquals(expected, sim.getCycles());
     }
 
@@ -669,12 +669,12 @@ public class InorderPipelineNoWxBypassTest {
         sim = new InorderPipeline(1, noWxBypass);
         sim.run(insns);
         assertEquals(insns.size(), sim.getInsns());
-        // 123456789abcdefg
-        // FDXM-W         |
-        //  FD---XM-W     |
-        //   F---D---XM-W |
-        //      F----DX-MW|
-        final long expected = 16;
+        // 123456789abcdefghi
+        // FDXM-W           |
+        //  FD---XM-W       |
+        //   F---D---XM-W   |
+        //      F----D---XMW|
+        final long expected = 18;
         assertEquals(expected, sim.getCycles());
     }
 
@@ -693,11 +693,11 @@ public class InorderPipelineNoWxBypassTest {
         sim.run(insns);
         assertEquals(insns.size(), sim.getInsns());
         // 123456789abcdef
-        // FDXM-W        |
-        //  FD---XMW     |
-        //   F---D--XMW  |
-        //       F--DXM-W|
-        final long expected = 15;
+        // FDXM-W      |
+        //  FD---XMW   |
+        //   F---DXMW  |
+        //       FDXM-W|
+        final long expected = 13;
         assertEquals(expected, sim.getCycles());
     }
 }
