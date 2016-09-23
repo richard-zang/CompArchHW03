@@ -90,4 +90,91 @@ public class InorderPipelineNoBypassTest {
         final long expected = 7 + 2;
         assertEquals(expected, sim.getCycles());
         }
+
+    @Test
+    public void testA(){
+        List<Insn> insns = new LinkedList<>();
+        insns.add(makeInsn(3, 8, 2, MemoryOp.Store));
+        insns.add(makeInsn(4, 3, 2, MemoryOp.Load));
+        sim.run(insns);
+
+        assertEquals(2, sim.getInsns());
+        // 123456789abcdef
+        // fdxmw   |
+        //  fd--xmw|
+        final long expected = 9;
+        assertEquals(expected, sim.getCycles());
+    }
+
+    @Test
+    public void testB(){
+        List<Insn> insns = new LinkedList<>();
+        insns.add(makeInsn(3, 8, 2, MemoryOp.Store));
+        insns.add(makeInsn(4, 3, 2, MemoryOp.Load));
+        insns.add(makeInsn(5, 4, 2, null));
+        sim.run(insns);
+
+        assertEquals(3, sim.getInsns());
+        // 123456789abcdef
+        // fdxmw      |
+        //  fd--xmw   |
+        //  fd-----xmw|
+        final long expected = 12;
+        assertEquals(expected, sim.getCycles());
+    }
+
+    @Test
+    public void testC(){
+        List<Insn> insns = new LinkedList<>();
+        insns.add(makeInsn(3, 8, 2, MemoryOp.Store));
+        insns.add(makeInsn(5, 4, 2, null));
+        insns.add(makeInsn(4, 3, 2, MemoryOp.Load));
+        insns.add(makeInsn(5, 4, 2, null));
+        sim.run(insns);
+
+        assertEquals(4, sim.getInsns());
+        // 123456789abcdef
+        // fdxmw      |
+        //  fdxmw     |
+        //  fd--xmw   |
+        //  fd-----xmw|
+        final long expected = 12;
+        assertEquals(expected, sim.getCycles());
+    }
+
+     @Test
+    public void testD(){
+        List<Insn> insns = new LinkedList<>();
+        insns.add(makeInsn(3, 8, 2, MemoryOp.Store));
+        insns.add(makeInsn(5, 4, 2, null));
+        insns.add(makeInsn(5, 4, 2, null));
+        insns.add(makeInsn(4, 3, 2, MemoryOp.Load));
+        insns.add(makeInsn(5, 4, 2, null));
+        sim.run(insns);
+
+        assertEquals(5, sim.getInsns());
+        // 123456789abcdef
+        // fdxmw      |
+        //  fdxmw     |
+        //   fdxmw    |
+        //    fd--xmw |
+        //     fd- xmw|
+        final long expected = 12;
+        assertEquals(expected, sim.getCycles());
+    }
+
+    @Test
+    public void testE(){
+        List<Insn> insns = new LinkedList<>();
+        insns.add(makeInsn(3, 8, 2, MemoryOp.Load));
+        insns.add(makeInsn(5, 4, 3, null));
+        sim.run(insns);
+
+        assertEquals(2, sim.getInsns());
+        // 123456789abcdef
+        // fdxmw   |
+        //  fd--xmw|
+        final long expected = 9;
+        assertEquals(expected, sim.getCycles());
+    }
 }
