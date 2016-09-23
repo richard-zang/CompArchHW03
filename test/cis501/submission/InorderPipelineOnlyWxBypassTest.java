@@ -13,9 +13,9 @@ import java.util.EnumSet;
 
 import static org.junit.Assert.assertEquals;
 
-public class InorderPipelineOnlyMxBypassTest {
+public class InorderPipelineOnlyWxBypassTest {
 
-	EnumSet<Bypass> onlyMxBypass = EnumSet.of(Bypass.MX);
+	EnumSet<Bypass> onlyWxBypass = EnumSet.of(Bypass.WX);
 
     private static IInorderPipeline sim;
 
@@ -33,9 +33,9 @@ public class InorderPipelineOnlyMxBypassTest {
       No Instructions, No MemLatency 
     */
     @Test
-    public void testOnlyMxBypass1(){
+    public void testOnlyWxBypass1(){
         List<Insn> insns = new LinkedList<>();
-        sim = new InorderPipeline(0, onlyMxBypass);
+        sim = new InorderPipeline(0, onlyWxBypass);
         sim.run(insns);
         assertEquals(insns.size(), sim.getInsns());
         // 123456789abcdef
@@ -49,10 +49,10 @@ public class InorderPipelineOnlyMxBypassTest {
       1 Non-memory Instruction, No MemLatency
     */
     @Test
-    public void testOnlyMxBypass2(){
+    public void testOnlyWxBypass2(){
         List<Insn> insns = new LinkedList<>();
         insns.add(makeInsn(1,2,3, null));
-        sim = new InorderPipeline(0, onlyMxBypass);
+        sim = new InorderPipeline(0, onlyWxBypass);
         sim.run(insns);
         assertEquals(insns.size(), sim.getInsns());
         // 123456789abcdef
@@ -66,10 +66,10 @@ public class InorderPipelineOnlyMxBypassTest {
       1 Memory Instruction, No MemLatency
     */
     @Test
-    public void testOnlyMxBypass3(){
+    public void testOnlyWxBypass3(){
         List<Insn> insns = new LinkedList<>();
         insns.add(makeInsn(1,2,3, MemoryOp.Load));
-        sim = new InorderPipeline(0, onlyMxBypass);
+        sim = new InorderPipeline(0, onlyWxBypass);
         sim.run(insns);
         assertEquals(insns.size(), sim.getInsns());
         // 123456789abcdef
@@ -82,11 +82,11 @@ public class InorderPipelineOnlyMxBypassTest {
       1 Memory Instruction, 1 Non-Memory Instruction, No dependency, No MemLatency
     */
     @Test
-    public void testOnlyMxBypass4(){
+    public void testOnlyWxBypass4(){
         List<Insn> insns = new LinkedList<>();
         insns.add(makeInsn(1,2,3, MemoryOp.Load));
         insns.add(makeInsn(4,5,6, null));
-        sim = new InorderPipeline(0, onlyMxBypass);
+        sim = new InorderPipeline(0, onlyWxBypass);
         sim.run(insns);
         assertEquals(insns.size(), sim.getInsns());
         // 123456789abcdef
@@ -100,11 +100,11 @@ public class InorderPipelineOnlyMxBypassTest {
       1 Non-Memory Instruction, 1 Memory Instruction, No dependency, No MemLatency
     */
     @Test
-    public void testOnlyMxBypass5(){
+    public void testOnlyWxBypass5(){
         List<Insn> insns = new LinkedList<>();
         insns.add(makeInsn(1,2,3, null));
         insns.add(makeInsn(4,5,6, MemoryOp.Store));
-        sim = new InorderPipeline(0, onlyMxBypass);
+        sim = new InorderPipeline(0, onlyWxBypass);
         sim.run(insns);
         assertEquals(insns.size(), sim.getInsns());
         // 123456789abcdef
@@ -118,20 +118,20 @@ public class InorderPipelineOnlyMxBypassTest {
       No MemLatency
       Add r1 <- r2 + r3
       Add r4 <- r1 + r2
-      Dependency solved by MX bypass
+      Dependency
     */
     @Test
-    public void testOnlyMxBypass6(){
+    public void testOnlyWxBypass6(){
         List<Insn> insns = new LinkedList<>();
         insns.add(makeInsn(1,2,3, null));
         insns.add(makeInsn(4,1,2, null));
-        sim = new InorderPipeline(0, onlyMxBypass);
+        sim = new InorderPipeline(0, onlyWxBypass);
         sim.run(insns);
         assertEquals(insns.size(), sim.getInsns());
         // 123456789abcdef
-        // FDXMW |
-        //  FDXMW|
-        final long expected = 6 + 1;
+        // FDXMW  |
+        //  FD-XMW|
+        final long expected = 8;
         assertEquals(expected, sim.getCycles());
     }
     /*
@@ -141,17 +141,17 @@ public class InorderPipelineOnlyMxBypassTest {
       Load to use dependency solved by stalling
     */
     @Test
-    public void testOnlyMxBypass7(){
+    public void testOnlyWxBypass7(){
         List<Insn> insns = new LinkedList<>();
         insns.add(makeInsn(1,2,3, MemoryOp.Load));
         insns.add(makeInsn(4,1,2, null));
-        sim = new InorderPipeline(0, onlyMxBypass);
+        sim = new InorderPipeline(0, onlyWxBypass);
         sim.run(insns);
         assertEquals(insns.size(), sim.getInsns());
         // 123456789abcdef
-        // FDXMW   |
-        //  FD--XMW|
-        final long expected = 9;
+        // FDXMW  |
+        //  FD-XMW|
+        final long expected = 8;
         assertEquals(expected, sim.getCycles());
     }
 
@@ -163,19 +163,19 @@ public class InorderPipelineOnlyMxBypassTest {
       Load to use dependency solved by stalling
     */
     @Test
-    public void testOnlyMxBypass8(){
+    public void testOnlyWxBypass8(){
         List<Insn> insns = new LinkedList<>();
         insns.add(makeInsn(1,2,3, MemoryOp.Load));
         insns.add(makeInsn(2,5,4, null));
         insns.add(makeInsn(4,1,2, null));
-        sim = new InorderPipeline(0, onlyMxBypass);
+        sim = new InorderPipeline(0, onlyWxBypass);
         sim.run(insns);
         assertEquals(insns.size(), sim.getInsns());
         // 123456789abcdef
-        // FDXMW    |
-        //  FDXMW   |
-        //   FD--XMW|
-        final long expected = 10;
+        // FDXMW   |
+        //  FDXMW  |
+        //   FD-XMW|
+        final long expected = 9;
         assertEquals(expected, sim.getCycles());
     }
 
@@ -186,17 +186,17 @@ public class InorderPipelineOnlyMxBypassTest {
       Load to store dependency
     */
     @Test
-    public void testOnlyMxBypass9(){
+    public void testOnlyWxBypass9(){
         List<Insn> insns = new LinkedList<>();
         insns.add(makeInsn(1,2,3, MemoryOp.Load));
         insns.add(makeInsn(1,2,3, MemoryOp.Store));
-        sim = new InorderPipeline(0, onlyMxBypass);
+        sim = new InorderPipeline(0, onlyWxBypass);
         sim.run(insns);
         assertEquals(insns.size(), sim.getInsns());
         // 123456789abcdef
-        // FDXMW   |
-        //  F--DXMW|
-        final long expected = 9;
+        // FDXMW  |
+        //  FDX-MW|
+        final long expected = 8;
         assertEquals(expected, sim.getCycles());
     }
 
@@ -207,17 +207,17 @@ public class InorderPipelineOnlyMxBypassTest {
       Load to store dependency
     */
     @Test
-    public void testOnlyMxBypass10(){
+    public void testOnlyWxBypass10(){
         List<Insn> insns = new LinkedList<>();
         insns.add(makeInsn(1,2,3, MemoryOp.Load));
         insns.add(makeInsn(2,3,1, MemoryOp.Store));
-        sim = new InorderPipeline(0, onlyMxBypass);
+        sim = new InorderPipeline(0, onlyWxBypass);
         sim.run(insns);
         assertEquals(insns.size(), sim.getInsns());
         // 123456789abcdef
-        // FDXMW   |
-        //  F--DXMW|
-        final long expected = 9;
+        // FDXMW  |
+        //  FD-XMW|
+        final long expected = 8;
         assertEquals(expected, sim.getCycles());
     }
 
@@ -226,20 +226,20 @@ public class InorderPipelineOnlyMxBypassTest {
       No MemLatency
       Load r1 <- Offset[r2]
       Store r2 <- Offset[r3]
-      Load to use no dependency
+      Load to use dependency
     */
     @Test
-    public void testOnlyMxBypass11(){
+    public void testOnlyWxBypass11(){
         List<Insn> insns = new LinkedList<>();
         insns.add(makeInsn(1,2,3, MemoryOp.Load));
         insns.add(makeInsn(2,1,3, MemoryOp.Store));
-        sim = new InorderPipeline(0, onlyMxBypass);
+        sim = new InorderPipeline(0, onlyWxBypass);
         sim.run(insns);
         assertEquals(insns.size(), sim.getInsns());
         // 123456789abcdef
-        // FDXMW   |
-        //  FD--XMW|
-        final long expected = 9;
+        // FDXMW  |
+        //  FD-XMW|
+        final long expected = 8;
         assertEquals(expected, sim.getCycles());
     }
 
@@ -248,13 +248,13 @@ public class InorderPipelineOnlyMxBypassTest {
       No dependencies
     */
     @Test
-    public void testOnlyMxBypass12(){
+    public void testOnlyWxBypass12(){
         List<Insn> insns = new LinkedList<>();
         insns.add(makeInsn(1,2,3, MemoryOp.Load));
         insns.add(makeInsn(4,6,2, null));
         insns.add(makeInsn(5,6,3, MemoryOp.Load));
         insns.add(makeInsn(2,2,2, null));
-        sim = new InorderPipeline(0, onlyMxBypass);
+        sim = new InorderPipeline(0, onlyWxBypass);
         sim.run(insns);
         assertEquals(insns.size(), sim.getInsns());
         // 123456789abcdef
@@ -271,21 +271,21 @@ public class InorderPipelineOnlyMxBypassTest {
       All dependent
     */
     @Test
-    public void testOnlyMxBypass13(){
+    public void testOnlyWxBypass13(){
         List<Insn> insns = new LinkedList<>();
         insns.add(makeInsn(1,2,3, MemoryOp.Load));
         insns.add(makeInsn(4,2,1, MemoryOp.Load));
         insns.add(makeInsn(5,3,4, MemoryOp.Load));
         insns.add(makeInsn(2,5,2, null));
-        sim = new InorderPipeline(0, onlyMxBypass);
+        sim = new InorderPipeline(0, onlyWxBypass);
         sim.run(insns);
         assertEquals(insns.size(), sim.getInsns());
         // 123456789abcdef
-        // FDXMW         |
-        //  FD--XMW      |
-        //   F--D--XMW   |
-        //      F--D--XMW|
-        final long expected = 15;
+        // FDXMW      |
+        //  FD-XMW    |
+        //   F-D-XMW  |
+        //     F-D-XMW|
+        final long expected = 12;
         assertEquals(expected, sim.getCycles());
     }
 
@@ -294,21 +294,21 @@ public class InorderPipelineOnlyMxBypassTest {
       All dependent
     */
     @Test
-    public void testOnlyMxBypass14(){
+    public void testOnlyWxBypass14(){
         List<Insn> insns = new LinkedList<>();
         insns.add(makeInsn(1,2,3, MemoryOp.Load));
         insns.add(makeInsn(4,2,1, MemoryOp.Load));
         insns.add(makeInsn(5,3,4, MemoryOp.Load));
         insns.add(makeInsn(2,5,2, null));
-        sim = new InorderPipeline(0, onlyMxBypass);
+        sim = new InorderPipeline(0, onlyWxBypass);
         sim.run(insns);
         assertEquals(insns.size(), sim.getInsns());
         // 123456789abcdef
-        // FDXMW         |
-        //  FD--XMW      |
-        //   F--D--XMW   |
-        //      F--D--XMW|
-        final long expected = 15;
+        // FDXMW      |
+        //  FD-XMW    |
+        //   F-D-XMW  |
+        //     F-D-XMW|
+        final long expected = 12;
         assertEquals(expected, sim.getCycles());
     }
 
@@ -317,21 +317,21 @@ public class InorderPipelineOnlyMxBypassTest {
       All dependent
     */
     @Test
-    public void testOnlyMxBypass15(){
+    public void testOnlyWxBypass15(){
         List<Insn> insns = new LinkedList<>();
         insns.add(makeInsn(1,2,3, MemoryOp.Load));
         insns.add(makeInsn(4,2,1, null));
         insns.add(makeInsn(5,3,4, null));
         insns.add(makeInsn(2,5,5, MemoryOp.Store));
-        sim = new InorderPipeline(0, onlyMxBypass);
+        sim = new InorderPipeline(0, onlyWxBypass);
         sim.run(insns);
         assertEquals(insns.size(), sim.getInsns());
         // 123456789abcdef
-        // FDXMW     |
-        //  FD--XMW  |
-        //   F--DXMW |
-        //      FDXMW|
-        final long expected = 11;
+        // FDXMW      |
+        //  FD-XMW    |
+        //   F-D-XMW  |
+        //      FD-XMW|
+        final long expected = 12;
         assertEquals(expected, sim.getCycles());
     }
 
@@ -346,9 +346,9 @@ public class InorderPipelineOnlyMxBypassTest {
       No Instructions, 1 MemLatency 
     */
     @Test
-    public void testOnlyMxBypass16(){
+    public void testOnlyWxBypass16(){
         List<Insn> insns = new LinkedList<>();
-        sim = new InorderPipeline(1, onlyMxBypass);
+        sim = new InorderPipeline(1, onlyWxBypass);
         sim.run(insns);
         assertEquals(insns.size(), sim.getInsns());
         // 123456789abcdef
@@ -362,10 +362,10 @@ public class InorderPipelineOnlyMxBypassTest {
       1 Non-memory Instruction, 1 MemLatency
     */
     @Test
-    public void testOnlyMxBypass17(){
+    public void testOnlyWxBypass17(){
         List<Insn> insns = new LinkedList<>();
         insns.add(makeInsn(1,2,3, null));
-        sim = new InorderPipeline(1, onlyMxBypass);
+        sim = new InorderPipeline(1, onlyWxBypass);
         sim.run(insns);
         assertEquals(insns.size(), sim.getInsns());
         // 123456789abcdef
@@ -379,10 +379,10 @@ public class InorderPipelineOnlyMxBypassTest {
       1 Memory Instruction, 1 MemLatency
     */
     @Test
-    public void testOnlyMxBypass18(){
+    public void testOnlyWxBypass18(){
         List<Insn> insns = new LinkedList<>();
         insns.add(makeInsn(1,2,3, MemoryOp.Load));
-        sim = new InorderPipeline(1, onlyMxBypass);
+        sim = new InorderPipeline(1, onlyWxBypass);
         sim.run(insns);
         assertEquals(insns.size(), sim.getInsns());
         // 123456789abcdef
@@ -395,11 +395,11 @@ public class InorderPipelineOnlyMxBypassTest {
       1 Memory Instruction, 1 Non-Memory Instruction, No dependency, 1 MemLatency
     */
     @Test
-    public void testOnlyMxBypass19(){
+    public void testOnlyWxBypass19(){
         List<Insn> insns = new LinkedList<>();
         insns.add(makeInsn(1,2,3, MemoryOp.Load));
         insns.add(makeInsn(4,5,6, null));
-        sim = new InorderPipeline(1, onlyMxBypass);
+        sim = new InorderPipeline(1, onlyWxBypass);
         sim.run(insns);
         assertEquals(insns.size(), sim.getInsns());
         // 123456789abcdef
@@ -413,11 +413,11 @@ public class InorderPipelineOnlyMxBypassTest {
       1 Non-Memory Instruction, 1 Memory Instruction, No dependency, 1 MemLatency
     */
     @Test
-    public void testOnlyMxBypass20(){
+    public void testOnlyWxBypass20(){
         List<Insn> insns = new LinkedList<>();
         insns.add(makeInsn(1,2,3, null));
         insns.add(makeInsn(4,5,6, MemoryOp.Store));
-        sim = new InorderPipeline(1, onlyMxBypass);
+        sim = new InorderPipeline(1, onlyWxBypass);
         sim.run(insns);
         assertEquals(insns.size(), sim.getInsns());
         // 123456789abcdef
@@ -431,20 +431,20 @@ public class InorderPipelineOnlyMxBypassTest {
       1 MemLatency
       Add r1 <- r2 + r3
       Add r4 <- r1 + r2
-      Dependency solved by MX bypass
+      Dependency solved by stalling
     */
     @Test
-    public void testOnlyMxBypass21(){
+    public void testOnlyWxBypass21(){
         List<Insn> insns = new LinkedList<>();
         insns.add(makeInsn(1,2,3, null));
         insns.add(makeInsn(4,1,2, null));
-        sim = new InorderPipeline(1, onlyMxBypass);
+        sim = new InorderPipeline(1, onlyWxBypass);
         sim.run(insns);
         assertEquals(insns.size(), sim.getInsns());
         // 123456789abcdef
-        // FDXMW |
-        //  FDXMW|
-        final long expected = 7;
+        // FDXMW  |
+        //  FD-XMW|
+        final long expected = 8;
         assertEquals(expected, sim.getCycles());
     }
     /*
@@ -454,17 +454,17 @@ public class InorderPipelineOnlyMxBypassTest {
       Load to use dependency solved by stalling
     */
     @Test
-    public void testOnlyMxBypass22(){
+    public void testOnlyWxBypass22(){
         List<Insn> insns = new LinkedList<>();
         insns.add(makeInsn(1,2,3, MemoryOp.Load));
         insns.add(makeInsn(4,1,2, null));
-        sim = new InorderPipeline(1, onlyMxBypass);
+        sim = new InorderPipeline(1, onlyWxBypass);
         sim.run(insns);
         assertEquals(insns.size(), sim.getInsns());
         // 123456789abcdef
-        // FDXM-W   |
-        //  FD---XMW|
-        final long expected = 10;
+        // FDXM-W  |
+        //  FD--XMW|
+        final long expected = 9;
         assertEquals(expected, sim.getCycles());
     }
 
@@ -476,19 +476,19 @@ public class InorderPipelineOnlyMxBypassTest {
       Load to use dependency solved by stalling
     */
     @Test
-    public void testOnlyMxBypass23(){
+    public void testOnlyWxBypass23(){
         List<Insn> insns = new LinkedList<>();
         insns.add(makeInsn(1,2,3, MemoryOp.Load));
         insns.add(makeInsn(2,5,4, null));
         insns.add(makeInsn(4,1,2, null));
-        sim = new InorderPipeline(1, onlyMxBypass);
+        sim = new InorderPipeline(1, onlyWxBypass);
         sim.run(insns);
         assertEquals(insns.size(), sim.getInsns());
         // 123456789abcdef
-        // FDXM-W    |
-        //  FDX-MW   |
-        //   FD---XMW|
-        final long expected = 11;
+        // FDXM-W   |
+        //  FDX-MW  |
+        //   FD--XMW|
+        final long expected = 10;
         assertEquals(expected, sim.getCycles());
     }
 
@@ -499,17 +499,17 @@ public class InorderPipelineOnlyMxBypassTest {
       Load to store dependency
     */
     @Test
-    public void testOnlyMxBypass24(){
+    public void testOnlyWxBypass24(){
         List<Insn> insns = new LinkedList<>();
         insns.add(makeInsn(1,2,3, MemoryOp.Load));
         insns.add(makeInsn(1,2,3, MemoryOp.Store));
-        sim = new InorderPipeline(1, onlyMxBypass);
+        sim = new InorderPipeline(1, onlyWxBypass);
         sim.run(insns);
         assertEquals(insns.size(), sim.getInsns());
         // 123456789abcdef
-        // FDXM-W    |
-        //  F---DXM-W|
-        final long expected = 11;
+        // FDXM-W   |
+        //  F--DXM-W|
+        final long expected = 10;
         assertEquals(expected, sim.getCycles());
     }
 
@@ -520,17 +520,17 @@ public class InorderPipelineOnlyMxBypassTest {
       Load to store dependency
     */
     @Test
-    public void testOnlyMxBypass25(){
+    public void testOnlyWxBypass25(){
         List<Insn> insns = new LinkedList<>();
         insns.add(makeInsn(1,2,3, MemoryOp.Load));
         insns.add(makeInsn(2,3,1, MemoryOp.Store));
-        sim = new InorderPipeline(1, onlyMxBypass);
+        sim = new InorderPipeline(1, onlyWxBypass);
         sim.run(insns);
         assertEquals(insns.size(), sim.getInsns());
         // 123456789abcdef
-        // FDXM-W    |
-        //  FD---XM-W|
-        final long expected = 11;
+        // FDXM-W   |
+        //  FD--XM-W|
+        final long expected = 10;
         assertEquals(expected, sim.getCycles());
     }
 
@@ -542,17 +542,17 @@ public class InorderPipelineOnlyMxBypassTest {
       Load to use dependency solved by stalling
     */
     @Test
-    public void testOnlyMxBypass26(){
+    public void testOnlyWxBypass26(){
         List<Insn> insns = new LinkedList<>();
         insns.add(makeInsn(1,2,3, MemoryOp.Load));
         insns.add(makeInsn(2,1,3, null));
-        sim = new InorderPipeline(1, onlyMxBypass);
+        sim = new InorderPipeline(1, onlyWxBypass);
         sim.run(insns);
         assertEquals(insns.size(), sim.getInsns());
         // 123456789abcdef
-        // FDXM-W   |
-        //  FD---XMW|
-        final long expected = 10;
+        // FDXM-W  |
+        //  FD--XMW|
+        final long expected = 9;
         assertEquals(expected, sim.getCycles());
     }
 
@@ -563,17 +563,17 @@ public class InorderPipelineOnlyMxBypassTest {
       Load to use dependency solved by stalling
     */
     @Test
-    public void testOnlyMxBypass26Prime(){
+    public void testOnlyWxBypass26Prime(){
         List<Insn> insns = new LinkedList<>();
         insns.add(makeInsn(1,2,3, MemoryOp.Load));
         insns.add(makeInsn(2,1,3, MemoryOp.Load));
-        sim = new InorderPipeline(1, onlyMxBypass);
+        sim = new InorderPipeline(1, onlyWxBypass);
         sim.run(insns);
         assertEquals(insns.size(), sim.getInsns());
         // 123456789abcdef
-        // FDXM-W    |
-        //  FD---XM-W|
-        final long expected = 11;
+        // FDXM-W   |
+        //  FD--XM-W|
+        final long expected = 10;
         assertEquals(expected, sim.getCycles());
     }
 
@@ -582,13 +582,13 @@ public class InorderPipelineOnlyMxBypassTest {
       No dependencies
     */
     @Test
-    public void testOnlyMxBypass27(){
+    public void testOnlyWxBypass27(){
         List<Insn> insns = new LinkedList<>();
         insns.add(makeInsn(1,2,3, MemoryOp.Load));
         insns.add(makeInsn(4,6,2, null));
         insns.add(makeInsn(5,6,3, MemoryOp.Load));
         insns.add(makeInsn(2,2,2, null));
-        sim = new InorderPipeline(1, onlyMxBypass);
+        sim = new InorderPipeline(1, onlyWxBypass);
         sim.run(insns);
         assertEquals(insns.size(), sim.getInsns());
         // 123456789abcdef
@@ -605,52 +605,75 @@ public class InorderPipelineOnlyMxBypassTest {
       All dependent
     */
     @Test
-    public void testOnlyMxBypass28(){
+    public void testOnlyWxBypass28(){
         List<Insn> insns = new LinkedList<>();
         insns.add(makeInsn(1,2,3, MemoryOp.Load));
         insns.add(makeInsn(4,2,1, MemoryOp.Load));
         insns.add(makeInsn(5,3,4, MemoryOp.Load));
         insns.add(makeInsn(2,5,2, null));
-        sim = new InorderPipeline(1, onlyMxBypass);
+        sim = new InorderPipeline(1, onlyWxBypass);
         sim.run(insns);
         assertEquals(insns.size(), sim.getInsns());
         // 123456789abcdefghi
-        // FDXM-W           |
-        //  FD---XM-W       |
-        //   F---D---XM-W   |
-        //       F---D---XMW|
-        final long expected = 18;
+        // FDXM-W        |
+        //  FD--XM-W     |
+        //   F--D--XM-W  |
+        //      F--D--XMW|
+        final long expected = 15;
         assertEquals(expected, sim.getCycles());
     }
 
     @Test
-    public void testOnlyMxBypass29a(){
+    public void testOnlyWxBypass29a(){
         List<Insn> insns = new LinkedList<>();
         insns.add(makeInsn(1,2,3, MemoryOp.Load));
         insns.add(makeInsn(4,2,1, MemoryOp.Load));
-        sim = new InorderPipeline(1, onlyMxBypass);
+        sim = new InorderPipeline(1, onlyWxBypass);
         sim.run(insns);
         assertEquals(insns.size(), sim.getInsns());
         // 123456789abcdefg
-        // FDXM-W    |
-        //  FD---XM-W|
-        final long expected = 11;
+        // FDXM-W   |
+        //  FD--XM-W|
+        final long expected = 10;
         assertEquals(expected, sim.getCycles());
     }
 
         @Test
-    public void testOnlyMxBypass29b(){
+    public void testOnlyWxBypass29b(){
         List<Insn> insns = new LinkedList<>();
         insns.add(makeInsn(1,2,3, MemoryOp.Load));
         insns.add(makeInsn(4,2,1, MemoryOp.Load));
         insns.add(makeInsn(5,3,4, MemoryOp.Load));
-        sim = new InorderPipeline(1, onlyMxBypass);
+        sim = new InorderPipeline(1, onlyWxBypass);
         sim.run(insns);
         assertEquals(insns.size(), sim.getInsns());
         // 123456789abcdefg
+        // FDXM-W      |
+        //  FD--XM-W   |
+        //   F--D--XM-W|
+        final long expected = 13;
+        assertEquals(expected, sim.getCycles());
+    }
+
+    /*
+      1 MemLatency
+      All dependent
+    */
+    @Test
+    public void testOnlyWxBypass29(){
+        List<Insn> insns = new LinkedList<>();
+        insns.add(makeInsn(1,2,3, MemoryOp.Load));
+        insns.add(makeInsn(4,2,1, MemoryOp.Load));
+        insns.add(makeInsn(5,3,4, MemoryOp.Load));
+        insns.add(makeInsn(2,5,2, null));
+        sim = new InorderPipeline(1, onlyWxBypass);
+        sim.run(insns);
+        assertEquals(insns.size(), sim.getInsns());
+        // 123456789abcdefghi
         // FDXM-W        |
-        //  FD---XM-W    |
-        //   F---D---XM-W|
+        //  FD--XM-W     |
+        //   F--D--XM-W  |
+        //      F--D--XMW|
         final long expected = 15;
         assertEquals(expected, sim.getCycles());
     }
@@ -660,44 +683,21 @@ public class InorderPipelineOnlyMxBypassTest {
       All dependent
     */
     @Test
-    public void testOnlyMxBypass29(){
-        List<Insn> insns = new LinkedList<>();
-        insns.add(makeInsn(1,2,3, MemoryOp.Load));
-        insns.add(makeInsn(4,2,1, MemoryOp.Load));
-        insns.add(makeInsn(5,3,4, MemoryOp.Load));
-        insns.add(makeInsn(2,5,2, null));
-        sim = new InorderPipeline(1, onlyMxBypass);
-        sim.run(insns);
-        assertEquals(insns.size(), sim.getInsns());
-        // 123456789abcdefghi
-        // FDXM-W           |
-        //  FD---XM-W       |
-        //   F---D---XM-W   |
-        //      F----D---XMW|
-        final long expected = 18;
-        assertEquals(expected, sim.getCycles());
-    }
-
-    /*
-      1 MemLatency
-      All dependent
-    */
-    @Test
-    public void testOnlyMxBypass30(){
+    public void testOnlyWxBypass30(){
         List<Insn> insns = new LinkedList<>();
         insns.add(makeInsn(1,2,3, MemoryOp.Load));
         insns.add(makeInsn(4,2,1, null));
         insns.add(makeInsn(5,3,4, null));
         insns.add(makeInsn(2,5,5, MemoryOp.Store));
-        sim = new InorderPipeline(1, onlyMxBypass);
+        sim = new InorderPipeline(1, onlyWxBypass);
         sim.run(insns);
         assertEquals(insns.size(), sim.getInsns());
         // 123456789abcdef
-        // FDXM-W      |
-        //  FD---XMW   |
-        //   F---DXMW  |
-        //       FDXM-W|
-        final long expected = 13;
+        // FDXM-W       |
+        //  FD--XMW     |
+        //   F--D-XMW   |
+        //      F-D-XM-W|
+        final long expected = 14;
         assertEquals(expected, sim.getCycles());
     }
 }
