@@ -27,6 +27,10 @@ public class Insn {
 
     public final String asm;
 
+    public long fallthroughPC() {
+        return this.pc + this.insnSizeBytes;
+    }
+
     private CondCodes CondCodeOfChar(char c) {
         switch (c) {
             case 'R':
