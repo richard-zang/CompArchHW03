@@ -97,10 +97,10 @@ public class InorderPipelineSomeBypassTest{
         sim.run(insns);
         assertEquals(3, sim.getInsns());
         // 123456789abcdefg
-        // fdxm--w        |
-        //  fd---xm--w    |
-        //   f---d---xm--w|
-        assertEquals(16, sim.getCycles());
+        // fdxm--w       |
+        //  fd---xm--w   |
+        //   f---dx--m--w|
+        assertEquals(15, sim.getCycles());
     }
 
     @Test
@@ -462,6 +462,51 @@ public class InorderPipelineSomeBypassTest{
         // fdxm---w |
         //  fdx---mw|
         assertEquals(10, sim.getCycles());
+    }
+
+        @Test
+    public void testALUtoStoreValue3(){
+        List<Insn> insns = new LinkedList<>();
+        insns.add(makeInsn(3,1,2, null));
+        insns.add(makeInsn(0,3,4, MemoryOp.Store));
+        sim = new InorderPipeline(0, set);
+        sim.run(insns);
+        assertEquals(insns.size(), sim.getInsns());
+        // 123456789abcdefgh
+        // FDXMW |
+        //  FDXMW|
+        final long expected = 7;
+        assertEquals(expected, sim.getCycles());
+    }
+
+            @Test
+    public void testALUtoStoreValue4(){
+        List<Insn> insns = new LinkedList<>();
+        insns.add(makeInsn(3,1,2, null));
+        insns.add(makeInsn(0,3,4, MemoryOp.Store));
+        sim = new InorderPipeline(1, set);
+        sim.run(insns);
+        assertEquals(insns.size(), sim.getInsns());
+        // 123456789abcdefgh
+        // FDXM-W |
+        //  FDX MW|
+        final long expected = 8;
+        assertEquals(expected, sim.getCycles());
+    }
+
+            @Test
+    public void testALUtoStoreValue5(){
+        List<Insn> insns = new LinkedList<>();
+        insns.add(makeInsn(3,1,2, null));
+        insns.add(makeInsn(0,3,4, MemoryOp.Store));
+        sim = new InorderPipeline(3, set);
+        sim.run(insns);
+        assertEquals(insns.size(), sim.getInsns());
+        // 123456789abcdefgh
+        // FDXM---W |
+        //  FDX---MW|
+        final long expected = 10;
+        assertEquals(expected, sim.getCycles());
     }
 
 }

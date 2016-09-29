@@ -174,8 +174,7 @@ public class InorderPipeline implements IInorderPipeline {
 
         // This depedency can be solved by a WM bypass.
         boolean wmDep = dInsn != null && xInsn != null &&
-           dInsn.mem == MemoryOp.Store && xInsn.mem == MemoryOp.Load
-            && xInsn.dstReg != dInsn.srcReg2;
+           dInsn.mem == MemoryOp.Store && xInsn.dstReg != dInsn.srcReg2;
 
         // Check our bypasses and see if they would resolve any dependencies:
         if(bypasses.contains(Bypass.MX) && mxDep)

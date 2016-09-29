@@ -700,4 +700,48 @@ public class InorderPipelineOnlyWmBypassTest {
         final long expected = 17;
         assertEquals(expected, sim.getCycles());
     }
+
+    @Test
+    public void testALUtoStoreValue0(){
+        List<Insn> insns = new LinkedList<>();
+        insns.add(makeInsn(3,1,2, null));
+        insns.add(makeInsn(0,3,4, MemoryOp.Store));
+        sim = new InorderPipeline(0, onlyWmBypass);
+        sim.run(insns);
+        assertEquals(insns.size(), sim.getInsns());
+        // 123456789abcdefgh
+        // FDXMW |
+        //  FDXMW|
+        final long expected = 7;
+        assertEquals(expected, sim.getCycles());
+    }
+    @Test
+    public void testALUtoStoreValue1(){
+        List<Insn> insns = new LinkedList<>();
+        insns.add(makeInsn(3,1,2, null));
+        insns.add(makeInsn(0,3,4, MemoryOp.Store));
+        sim = new InorderPipeline(1, onlyWmBypass);
+        sim.run(insns);
+        assertEquals(insns.size(), sim.getInsns());
+        // 123456789abcdefgh
+        // FDXM-W |
+        //  FDX MW|
+        final long expected = 8;
+        assertEquals(expected, sim.getCycles());
+    }
+
+    @Test
+    public void testALUtoStoreValue2(){
+        List<Insn> insns = new LinkedList<>();
+        insns.add(makeInsn(3,1,2, null));
+        insns.add(makeInsn(0,3,4, MemoryOp.Store));
+        sim = new InorderPipeline(3, onlyWmBypass);
+        sim.run(insns);
+        assertEquals(insns.size(), sim.getInsns());
+        // 123456789abcdefgh
+        // FDXM---W |
+        //  FDX---MW|
+        final long expected = 10;
+        assertEquals(expected, sim.getCycles());
+    }
 }
