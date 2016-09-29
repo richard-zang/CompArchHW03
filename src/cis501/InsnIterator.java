@@ -34,6 +34,9 @@ public class InsnIterator implements Iterator<Insn>, Iterable<Insn> {
     }
 
     public boolean hasNext() {
+        if (Thread.interrupted()) {
+            throw new IllegalStateException("Interrupted!");
+        }
         try {
             return insnsProcessed < LIMIT && reader.ready();
         } catch (IOException e) {
@@ -43,6 +46,9 @@ public class InsnIterator implements Iterator<Insn>, Iterable<Insn> {
     }
 
     public Insn next() {
+        if (Thread.interrupted()) {
+            throw new IllegalStateException("Interrupted!");
+        }
         try {
             String ln = reader.readLine();
             insnsProcessed++;
