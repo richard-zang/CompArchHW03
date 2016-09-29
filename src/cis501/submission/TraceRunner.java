@@ -34,7 +34,7 @@ public class TraceRunner {
         pipe.run(uiter);
         System.out.println("Cycles [" + latency + "]: " + pipe.getCycles());
         System.out.println("Insn [" + latency + "]: " + pipe.getInsns());
-        float ipc = pipe.getCycles() /(float) pipe.getInsns();
+        float ipc =  pipe.getInsns() / (float) pipe.getCycles();
         System.out.println("IPC [" + latency + "]: " + ipc);
     }
 }
