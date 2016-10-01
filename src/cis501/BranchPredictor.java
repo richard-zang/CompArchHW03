@@ -12,9 +12,9 @@ public class BranchPredictor {
     }
 
     /**
-     * @param pc            the PC of an insn i (which may or may not be a branch) on which we make
-     *                      our prediction. For ARM, this is the actual PC of the insn; the caller
-     *                      does not need to discard the LSB.
+     * @param pc :the PC of an insn i (which may or may not be a branch) on which we make
+     * our prediction. For ARM, this is the actual PC of the insn; the caller does not
+     * need to discard the LSB.
      * @param fallthroughPC the fallthrough PC of insn i, computed from i's pc and size
      * @return the predicted next PC
      */
@@ -27,12 +27,12 @@ public class BranchPredictor {
 
         Direction d = dp.predict(predictorIndex);
         switch (d) {
-            case Taken:
-                return btbTarget;
-            case NotTaken:
-                return fallthroughPC;
-            default:
-                assert false;
+        case Taken:
+            return btbTarget;
+        case NotTaken:
+            return fallthroughPC;
+        default:
+            assert false;
         }
         throw new IllegalStateException("Should never reach here!");
     }
@@ -40,10 +40,10 @@ public class BranchPredictor {
     /**
      * Update the predictor state based on the actual behavior of the branch.
      *
-     * @param pc           The program counter of the branch to train. For ARM, this is the actual
-     *                     PC of the insn; the caller does not need to discard the LSB.
-     * @param actualNextPC the true next PC following the branch
-     * @param actualDir    the actual direction of the branch
+     * @param pc: The program counter of the branch to train. For ARM, this is the actual
+     * PC of the insn; the caller does not need to discard the LSB.
+     * @param actualNextPC: the true next PC following the branch
+     * @param actualDir: the actual direction of the branch
      */
     public void train(long pc, long actualNextPC, Direction actualDir) {
         assert 0 == (pc & 0x1) : "lsb of PC should always be 0 for ARM";

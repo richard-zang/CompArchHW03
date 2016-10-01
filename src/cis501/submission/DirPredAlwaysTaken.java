@@ -6,12 +6,12 @@ import cis501.IDirectionPredictor;
 public class DirPredAlwaysTaken implements IDirectionPredictor {
 
     @Override
-    public Direction predict(long pc) {
+    public Direction predict(long pc){
         return Direction.Taken;
     }
 
     @Override
-    public void train(long pc, Direction actual) {
-		return;
+    public void train(long pc, Direction actual){
+        return;
     }
 }

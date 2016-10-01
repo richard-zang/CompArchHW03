@@ -12,16 +12,23 @@ import static org.junit.Assert.assertEquals;
 public class BranchPredSampleTest {
 
     // TODO: replace the path of trace file here
-    private static final String TRACE_FILE = "path/to/go-10M.trace.gz";
+    private static final String TRACE_FILE = "./streamcluster-10M-v1.trace.gz";
 
     private IBranchTargetBuffer btb;
     private IDirectionPredictor bimodal;
     private IDirectionPredictor gshare;
     private IDirectionPredictor tournament;
     private IInorderPipeline pipe;
+    private IDirectionPredictor bimodal5;
+    private IDirectionPredictor gshare5;
+    private IBranchTargetBuffer btb5;
 
     private static Insn makeBr(long pc, Direction dir, /*long fallthruPC*/ long targetPC) {
         return new Insn(1, 2, 3, pc, 4, dir, targetPC, null, null, 0, 0, "<synthetic>");
+    }
+    private static Insn makeInsn(int dst, int src1, int src2, MemoryOp mop) {
+        return new Insn(dst, src1, src2, 1, 4, null, 0, null,
+                        mop, 1, 1, "synthetic");
     }
 
     // BTB tests
@@ -30,7 +37,9 @@ public class BranchPredSampleTest {
     public void setUp() throws Exception {
         // Runs before each test...() method
         btb = new BranchTargetBuffer(3/*index bits*/);
+        btb5 = new BranchTargetBuffer(5/*index bits*/);
         bimodal = new DirPredBimodal(3/*index bits*/);
+        bimodal5 = new DirPredBimodal(5/*index bits*/);
         gshare = new DirPredGshare(3/*index bits*/, 1/*history bits*/);
 
         // create a tournament predictor that behaves like bimodal
@@ -63,7 +72,6 @@ public class BranchPredSampleTest {
     }
 
     // Bimodal tests
-
     @Test
     public void testBtbAlias() {
         btb.train(0, 42);
@@ -174,7 +182,6 @@ public class BranchPredSampleTest {
         //  ..fdxmw|
         assertEquals(7 + 2, pipe.getCycles());
     }
-
     @Test
     public void testPipe2Mispredicted() {
         List<Insn> insns = new LinkedList<>();
@@ -193,8 +200,7 @@ public class BranchPredSampleTest {
 
     // Trace tests: actual IPCs for streamcluster-10M-v1.trace.gz with the always/never-taken
     // predictors and zero additional memory latency.
-
-    @Test
+    /*@Test
     public void testAlwaysTakenTrace() {
         final IDirectionPredictor always = new DirPredAlwaysTaken();
         final IBranchTargetBuffer bigBtb = new BranchTargetBuffer(10);
@@ -202,9 +208,9 @@ public class BranchPredSampleTest {
         IInorderPipeline pl = new InorderPipeline(0, new BranchPredictor(always, bigBtb));
         pl.run(uiter);
         assertEquals(0.96, pl.getInsns() / (double) pl.getCycles(), 0.01);
-    }
+        }*/
 
-    @Test
+    /*@Test
     public void testNeverTakenTrace() {
         final IDirectionPredictor never = new DirPredNeverTaken();
         final IBranchTargetBuffer bigBtb = new BranchTargetBuffer(10);
@@ -212,7 +218,54 @@ public class BranchPredSampleTest {
         IInorderPipeline pl = new InorderPipeline(0, new BranchPredictor(never, bigBtb));
         pl.run(uiter);
         assertEquals(0.81, pl.getInsns() / (double) pl.getCycles(), 0.01);
+        }*/
+
+    /* For these tests are based off the numbers on the trace file. Notice we always
+     * add 2. One as the trace file starts counting from 0, we start from 1.
+     * The other One because we want to know when it ended.
+     */
+    @Test
+    public void testLoadAndBranchMis() {
+        List<Insn> insns = new LinkedList<>();
+        insns.add(makeInsn(1,2,3, MemoryOp.Store));
+        insns.add(makeBr(8, Direction.NotTaken, 60));
+        insns.add(makeInsn(4,5,6, MemoryOp.Store));
+        IInorderPipeline pl = new InorderPipeline(1, new BranchPredictor(bimodal5, btb5));
+        pl.run(insns);
+        // 123456789abcdef
+        // fdxm-w   |
+        //  fdx-mw  |
+        //   --fdxmw|
+        assertEquals(10, pl.getCycles());
     }
 
-    // add more tests here!
+    @Test
+    public void bimodalTraceFileTest(){
+        InsnIterator uiter = new InsnIterator(TRACE_FILE, 5000);
+        IInorderPipeline pl = new InorderPipeline(1, new BranchPredictor(bimodal5, btb5));
+        pl.run(uiter);
+        assertEquals(7220 + 2, pl.getCycles());
+    }
+
+    @Test
+    public void neverTakenTraceFileTest() {
+        final IDirectionPredictor never = new DirPredNeverTaken();
+        final IBranchTargetBuffer bigBtb = new BranchTargetBuffer(5);
+        InsnIterator uiter = new InsnIterator(TRACE_FILE, 5000);
+        IInorderPipeline pl = new InorderPipeline(1, new BranchPredictor(never, bigBtb));
+        pl.run(uiter);
+        assertEquals(7560 + 2, pl.getCycles());
+    }
+
+    @Test
+    public void gshareTraceFileTest() {
+        final IDirectionPredictor gshare = new DirPredGshare(5,31);
+        final IBranchTargetBuffer bigBtb = new BranchTargetBuffer(5);
+        InsnIterator uiter = new InsnIterator(TRACE_FILE, 5000);
+        IInorderPipeline pl = new InorderPipeline(1, new BranchPredictor(gshare, bigBtb));
+        pl.run(uiter);
+        assertEquals(7230 + 2, pl.getCycles());
+    }
+
+    //add more tests here!
 }

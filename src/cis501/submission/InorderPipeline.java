@@ -5,6 +5,8 @@ import cis501.*;
 
 import java.util.Set;
 import java.util.Iterator;
+import java.util.Queue;
+import java.util.LinkedList;
 
 /**
  * Note: Stages are declared in "reverse" order to simplify iterating over them in reverse order,
@@ -59,17 +61,42 @@ public class InorderPipeline implements IInorderPipeline {
      * @param additionalMemLatency see InorderPipeline(int, Set<Bypass>)
      * @param bp                   the branch predictor to use
      */
-    public InorderPipeline(int additionalMemLatency, BranchPredictor bp) {
+    public InorderPipeline(int additionalMemLatency, BranchPredictor bp){
+        this.bp = bp;
+        branchPredictionOn = true;
+        this.additionalMemLatency = additionalMemLatency;
+        this.bypasses = Bypass.FULL_BYPASS;
+        latches = new Insn[5];
+        instructionCount = 0;
+        cycleCount = 0;
+
+        return;
     }
 
     private int additionalMemLatency;
     private Set<Bypass> bypasses;
     private Insn[] latches;
+
+    /** Stalling counter for memory latency issues. */
     private int currentMemoryTimer;
+    private int currentBranchTimer;
+
     private long instructionCount;
     private long cycleCount;
     private boolean mInsnCanAdvance;
+    /** Decode instruction can't advance due to data hazards. */
     private boolean dInsnCanAdvance = false;
+    /** Decode instruction can't advance due to branch mispredictions. */
+    private boolean dInsnCanAdvanceBranch;
+    private final int branchStallTime = 2;
+
+    BranchPredictor bp = null;
+    private boolean branchPredictionOn = false;
+
+    /** Prediction made during fetch of whether this instruction was a branch.
+        At most we may want to know what was predicted for the past 3 instructions.
+        So we keep this information in our queue of fun. */
+    private Queue<Long> predictedPC = new LinkedList<>();
 
     private boolean latchesEmpty(){
         for(int i = 0; i < 5; i++){
@@ -96,13 +123,12 @@ public class InorderPipeline implements IInorderPipeline {
         return;
     }
 
+    /**
+     * Main function to check if an instruction can move forward in the pipeline.
+     * updates latches as well as clears latches based on values of
+     * mInsnCanAdvance, dInsnCanAdvance.
+     */
     private void advanceLatchInsns(Iterator<Insn> instructionIterator){
-        Insn w_Insn = getLatch(Stage.WRITEBACK);
-        Insn m_Insn = getLatch(Stage.MEMORY);
-        Insn x_Insn = getLatch(Stage.EXECUTE);
-        Insn d_Insn = getLatch(Stage.DECODE);
-        Insn f_Insn = getLatch(Stage.FETCH);
-
         //WRITEBACK
         clearLatch(Stage.WRITEBACK);
 
@@ -114,13 +140,14 @@ public class InorderPipeline implements IInorderPipeline {
 
         //EXECUTE
         if(getLatch(Stage.MEMORY) == null){
+            // Move instruction along.
             assignLatch(Stage.MEMORY, Stage.EXECUTE);
             currentMemoryTimer = 0;
             clearLatch(Stage.EXECUTE);
         }
 
         //DECODE
-        if(dInsnCanAdvance && getLatch(Stage.EXECUTE) == null){
+        if(dInsnCanAdvance && dInsnCanAdvanceBranch && getLatch(Stage.EXECUTE) == null){
             assignLatch(Stage.EXECUTE, Stage.DECODE);
             clearLatch(Stage.DECODE);
         }
@@ -129,11 +156,20 @@ public class InorderPipeline implements IInorderPipeline {
         if(getLatch(Stage.DECODE) == null){
             assignLatch(Stage.DECODE, Stage.FETCH);
 
+            // Get next instruction from list.
             if(instructionIterator.hasNext()){
                 assignLatch(Stage.FETCH, instructionIterator.next());
+                Insn fetchInsn = getLatch(Stage.FETCH);
                 instructionCount++;
+
+                // Call branch predictor on our new instruction. Attempt to find
+                // whether it's a branch and whether it's taken/not taken.
+                if(branchPredictionOn){
+                    //System.out.println("[" + cycleCount + "]: Added: " + bp.predict(fetchInsn.pc, fetchInsn.fallthroughPC()) + " Current PC: " + fetchInsn.pc);
+                    predictedPC.add(bp.predict(fetchInsn.pc, fetchInsn.fallthroughPC()));
+                }
             }
-            else {
+            else{
                 clearLatch(Stage.FETCH);
             }
         }
@@ -155,8 +191,38 @@ public class InorderPipeline implements IInorderPipeline {
         if(mInsn != null && mInsn.mem != null)
             mInsnCanAdvance = (currentMemoryTimer > additionalMemLatency);
 
+
         //EXECUTE
-        //EXECUTE will never stall.
+        // If this instruction was a branch, we know the correct address it jumped. We
+        // check our prediction and stall if necessary.
+       dInsnCanAdvanceBranch = true;
+
+       if(branchPredictionOn && xInsn != null){
+           long thisPredictedPC = mInsnCanAdvance ? predictedPC.remove() :
+               predictedPC.peek();
+           //System.out.println("[" + cycleCount + "] Popped: " + thisPredictedPC);
+
+           // We have a branch! Train and check for branch mispredictions.
+           if(xInsn.branch != null){
+               bp.train(xInsn.pc, xInsn.branchTarget, xInsn.branch);
+
+               // Stall if our prediction was wrong.
+               boolean predictionCorrect = xInsn.branch == Direction.NotTaken ?
+                   thisPredictedPC == xInsn.fallthroughPC() :
+                   thisPredictedPC == xInsn.branchTarget;
+               //System.out.println("[" + cycleCount + "] Branch Direction: " +
+               //                   (xInsn.branch == Direction.Taken));
+               // We are already stalling but are stuck because of a memory stall.
+               // We don't want to restart the timer then.
+               if(!predictionCorrect && currentBranchTimer >= branchStallTime){
+                   //System.out.println("[" + cycleCount + "]: Stalling!");
+                   currentBranchTimer = 0;
+               }
+           }
+       }
+
+        if(branchPredictionOn)
+            dInsnCanAdvanceBranch = (currentBranchTimer >= branchStallTime);
 
         //DECODE
         //DECODE may be unable to move to the next stage due to load-to-use issues.
@@ -226,6 +292,7 @@ public class InorderPipeline implements IInorderPipeline {
             advanceLatchInsns(instructionIterator);
 
             currentMemoryTimer++;
+            currentBranchTimer++;
             cycleCount++;
         }
     }
