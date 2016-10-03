@@ -89,6 +89,7 @@ public class InorderPipeline implements IInorderPipeline {
     private final int branchStallTime = 2;
 
     private boolean branchStalling = false;
+	private boolean insnUsedForTraining = false;
 
     BranchPredictor bp = null;
     private boolean branchPredictionOn = false;
@@ -145,6 +146,7 @@ public class InorderPipeline implements IInorderPipeline {
             currentMemoryTimer = 0;
             clearLatch(Stage.EXECUTE);
             branchStalling = false;
+			insnUsedForTraining = false;
         }
 
         //DECODE
@@ -208,8 +210,10 @@ public class InorderPipeline implements IInorderPipeline {
                    xInsn.fallthroughPC();
 
                // Train on the first time only. Not anytime after that.
-               bp.train(xInsn.pc, actualNextPC, branchDir);
-
+               if(!insnUsedForTraining){
+					bp.train(xInsn.pc, actualNextPC, branchDir);
+					insnUsedForTraining = true;
+				}
                // Stall if our prediction was wrong.
                boolean predictionCorrect = (branchDir == Direction.Taken) ?
                    thisPredictedPC == xInsn.branchTarget :
