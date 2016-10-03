@@ -11,6 +11,6 @@ public class DirPredNeverTaken implements IDirectionPredictor {
 
     @Override
     public void train(long pc, Direction actual) {
-        return;
+		return;
     }
 }

@@ -91,7 +91,6 @@ public class InorderPipeline implements IInorderPipeline {
     private final int branchStallTime = 2;
 
     private boolean branchStalling = false;
-	private boolean insnUsedForTraining = false;
 
     BranchPredictor bp = null;
     private boolean branchPredictionOn = false;
@@ -147,8 +146,11 @@ public class InorderPipeline implements IInorderPipeline {
             assignLatch(Stage.MEMORY, Stage.EXECUTE);
             currentMemoryTimer = 0;
             clearLatch(Stage.EXECUTE);
+<<<<<<< HEAD
             branchStalling = false;
 			insnUsedForTraining = false;
+=======
+>>>>>>> parent of e9a3a1f... Fixed bug in branch stalling logic.
         }
 
         //DECODE
@@ -203,29 +205,35 @@ public class InorderPipeline implements IInorderPipeline {
        dInsnCanAdvanceBranch = true;
 
        if(branchPredictionOn && xInsn != null){
-           long thisPredictedPC = predictedPC.peek();
+           long thisPredictedPC = mInsnCanAdvance ? predictedPC.remove() :
+               predictedPC.peek();
+           //System.out.println("[" + cycleCount + "] Popped: " + thisPredictedPC);
 
            // We have a branch! Train and check for branch mispredictions.
            if(xInsn.branch != null){
+<<<<<<< HEAD
                // Train on the first time only. Not anytime after that.
                if(!insnUsedForTraining){
 					bp.train(xInsn.pc, xInsn.branchTarget, xInsn.branch);
 					insnUsedForTraining = true;
 				}
+=======
+               bp.train(xInsn.pc, xInsn.branchTarget, xInsn.branch);
+
+>>>>>>> parent of e9a3a1f... Fixed bug in branch stalling logic.
                // Stall if our prediction was wrong.
                boolean predictionCorrect = xInsn.branch == Direction.NotTaken ?
                    thisPredictedPC == xInsn.fallthroughPC() :
                    thisPredictedPC == xInsn.branchTarget;
-
-               // We are stalling but are stuck because of a memory stall.
-               // We don't want to restart the timer.
-               if(!predictionCorrect && !branchStalling){
-                   System.out.println("Stalling at: [" + cycleCount + "]");
+               //System.out.println("[" + cycleCount + "] Branch Direction: " +
+               //                   (xInsn.branch == Direction.Taken));
+               // We are already stalling but are stuck because of a memory stall.
+               // We don't want to restart the timer then.
+               if(!predictionCorrect && currentBranchTimer >= branchStallTime){
+                   //System.out.println("[" + cycleCount + "]: Stalling!");
                    currentBranchTimer = 0;
-                   branchStalling = true;
                }
            }
-           if(mInsnCanAdvance) predictedPC.remove();
        }
 
         if(branchPredictionOn)
@@ -265,6 +273,7 @@ public class InorderPipeline implements IInorderPipeline {
 
         //FETCH
         //FETCH will never cause a stall.
+
     }
 
     /**
