@@ -89,7 +89,7 @@ public class InorderPipeline implements IInorderPipeline {
     private final int branchStallTime = 2;
 
     private boolean branchStalling = false;
-	private boolean insnUsedForTraining = false;
+    private boolean insnUsedForTraining = false;
 
     BranchPredictor bp = null;
     private boolean branchPredictionOn = false;
@@ -146,7 +146,7 @@ public class InorderPipeline implements IInorderPipeline {
             currentMemoryTimer = 0;
             clearLatch(Stage.EXECUTE);
             branchStalling = false;
-			insnUsedForTraining = false;
+            insnUsedForTraining = false;
         }
 
         //DECODE
@@ -197,37 +197,35 @@ public class InorderPipeline implements IInorderPipeline {
         //EXECUTE
         // If this instruction was a branch, we know the correct address it jumped. We
         // check our prediction and stall if necessary.
-       dInsnCanAdvanceBranch = true;
+        dInsnCanAdvanceBranch = true;
 
-       if(branchPredictionOn && xInsn != null){
-           long thisPredictedPC = predictedPC.peek();
+        if(branchPredictionOn && xInsn != null){
+            long thisPredictedPC = predictedPC.peek();
 
-           // We have a branch! Train and check for branch mispredictions.
-           Direction branchDir = xInsn.branch;
-           if(branchDir != null){
-               long actualNextPC = (branchDir == Direction.Taken) ?
-                   xInsn.branchTarget :
-                   xInsn.fallthroughPC();
+            // We have a branch! Train and check for branch mispredictions.
+            Direction branchDir = xInsn.branch;
+            if(branchDir != null){
+                long actualNextPC = (branchDir == Direction.Taken) ?
+                    xInsn.branchTarget :
+                    xInsn.fallthroughPC();
 
-               // Train on the first time only. Not anytime after that.
-               if(!insnUsedForTraining){
-					bp.train(xInsn.pc, actualNextPC, branchDir);
-					insnUsedForTraining = true;
-				}
-               // Stall if our prediction was wrong.
-               boolean predictionCorrect = (branchDir == Direction.Taken) ?
-                   thisPredictedPC == xInsn.branchTarget :
-                   thisPredictedPC == xInsn.fallthroughPC();
+                // Train on the first time only. Not anytime after that.
+                if(!branchStalling) bp.train(xInsn.pc, actualNextPC, branchDir);
 
-               // We are stalling but are stuck because of a memory stall.
-               // We don't want to restart the timer.
-               if(!predictionCorrect && !branchStalling){
-                   currentBranchTimer = 0;
-                   branchStalling = true;
-               }
-           }
-           if(mInsnCanAdvance) predictedPC.remove();
-       }
+                // Stall if our prediction was wrong.
+                boolean predictionCorrect = (branchDir == Direction.Taken) ?
+                    thisPredictedPC == xInsn.branchTarget :
+                    thisPredictedPC == xInsn.fallthroughPC();
+
+                // We are stalling but are stuck because of a memory stall.
+                // We don't want to restart the timer.
+                if(!predictionCorrect && !branchStalling){
+                    currentBranchTimer = 0;
+                    branchStalling = true;
+                }
+            }
+            if(mInsnCanAdvance) predictedPC.remove();
+        }
 
         if(branchPredictionOn)
             dInsnCanAdvanceBranch = (currentBranchTimer >= branchStallTime);
@@ -246,12 +244,12 @@ public class InorderPipeline implements IInorderPipeline {
         boolean mxDep = dataDependecy(dInsn, xInsn) &&
             xInsn.mem != MemoryOp.Load;
 
-         // This depedency can be solved by a WX bypass.
+        // This depedency can be solved by a WX bypass.
         boolean wxDep = dataDependecy(dInsn, mInsn);
 
         // This depedency can be solved by a WM bypass.
         boolean wmDep = dInsn != null && xInsn != null &&
-           dInsn.mem == MemoryOp.Store && xInsn.dstReg != dInsn.srcReg2;
+            dInsn.mem == MemoryOp.Store && xInsn.dstReg != dInsn.srcReg2;
 
         // Check our bypasses and see if they would resolve any dependencies:
         if(bypasses.contains(Bypass.MX) && mxDep)
@@ -280,7 +278,7 @@ public class InorderPipeline implements IInorderPipeline {
             return false;
         // Compare destination of first to source of second.
         boolean srcToDst = decodeInsn.srcReg1 == otherInsn.dstReg ||
-                decodeInsn.srcReg2 == otherInsn.dstReg;
+            decodeInsn.srcReg2 == otherInsn.dstReg;
         // Store is a special case where we must check if the destinations
         // match!
         boolean loadCase = decodeInsn.mem == MemoryOp.Store &&

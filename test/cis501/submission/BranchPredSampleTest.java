@@ -51,10 +51,10 @@ public class BranchPredSampleTest {
         pipe = new InorderPipeline(0, new BranchPredictor(never, btb));
     }
 
-    /*@Test
+    @Test
     public void testBtbInitialState() {
         assertEquals(0, btb.predict(0));
-        }*/
+        }
 
     /**
      * In Java, % is remainder, not modulo. See http://stackoverflow.com/questions/5385024/mod-in-java-produces-negative-numbers
@@ -200,7 +200,7 @@ public class BranchPredSampleTest {
 
     // Trace tests: actual IPCs for streamcluster-10M-v1.trace.gz with the always/never-taken
     // predictors and zero additional memory latency.
-    /*@Test
+    @Test
     public void testAlwaysTakenTrace() {
         final IDirectionPredictor always = new DirPredAlwaysTaken();
         final IBranchTargetBuffer bigBtb = new BranchTargetBuffer(10);
@@ -208,9 +208,9 @@ public class BranchPredSampleTest {
         IInorderPipeline pl = new InorderPipeline(0, new BranchPredictor(always, bigBtb));
         pl.run(uiter);
         assertEquals(0.96, pl.getInsns() / (double) pl.getCycles(), 0.01);
-        }
+    }
 
-    @Test
+    /*@Test
     public void testNeverTakenTrace() {
         final IDirectionPredictor never = new DirPredNeverTaken();
         final IBranchTargetBuffer bigBtb = new BranchTargetBuffer(10);
@@ -239,36 +239,14 @@ public class BranchPredSampleTest {
         assertEquals(10, pl.getCycles());
     }
 
-        @Test
-    public void bimodalTraceFileTesta(){
-        InsnIterator uiter = new InsnIterator(TRACE_FILE, 3330);
-        IInorderPipeline pl = new InorderPipeline(1, new BranchPredictor(bimodal5, btb5));
-        pl.run(uiter);
-        assertEquals(4827 + 2, pl.getCycles());
-    }
-
-            @Test
-    public void bimodalTraceFileTestb(){
-        InsnIterator uiter = new InsnIterator(TRACE_FILE, 3331);
-        IInorderPipeline pl = new InorderPipeline(1, new BranchPredictor(bimodal5, btb5));
-        pl.run(uiter);
-        assertEquals(4828 + 2, pl.getCycles());
-    }
-
-            @Test
-    public void bimodalTraceFileTestc(){
-        InsnIterator uiter = new InsnIterator(TRACE_FILE, 3332);
-        IInorderPipeline pl = new InorderPipeline(1, new BranchPredictor(bimodal5, btb5));
-        pl.run(uiter);
-        assertEquals(4829 + 2, pl.getCycles());
-    }
-
     @Test
     public void bimodalTraceFileTest(){
         InsnIterator uiter = new InsnIterator(TRACE_FILE, 5000);
         IInorderPipeline pl = new InorderPipeline(1, new BranchPredictor(bimodal5, btb5));
         pl.run(uiter);
-        assertEquals(7220 + 2, pl.getCycles());
+        assertEquals(5000 / ((double)(7220 + 2)),
+                     pl.getInsns() / (double) pl.getCycles(),
+                     0.01);
     }
 
     @Test
@@ -278,27 +256,20 @@ public class BranchPredSampleTest {
         InsnIterator uiter = new InsnIterator(TRACE_FILE, 5000);
         IInorderPipeline pl = new InorderPipeline(1, new BranchPredictor(never, bigBtb));
         pl.run(uiter);
-        assertEquals(7560 + 2, pl.getCycles());
+        assertEquals(5000 / ((double) (7560 + 2)),
+                     pl.getInsns() / (double) pl.getCycles(),
+                     0.01);
     }
 
     @Test
-    public void gshareTraceFileTesta() {
+    public void gshareTraceFileTest(){
         final IDirectionPredictor gshare = new DirPredGshare(5,31);
         final IBranchTargetBuffer bigBtb = new BranchTargetBuffer(5);
-        InsnIterator uiter = new InsnIterator(TRACE_FILE, 875);
-        IInorderPipeline pl = new InorderPipeline(1, new BranchPredictor(gshare, bigBtb));
-        pl.run(uiter);
-        assertEquals(1302 + 2, pl.getCycles());
-    }
-
-    @Test
-    public void gshareTraceFileTest() {
-        final IDirectionPredictor gshare = new DirPredGshare(5,31);
-        final IBranchTargetBuffer bigBtb = new BranchTargetBuffer(5);
-        InsnIterator uiter = new InsnIterator(TRACE_FILE, 876);
+        InsnIterator uiter = new InsnIterator(TRACE_FILE, 5000);
         IInorderPipeline pl = new InorderPipeline(1, new BranchPredictor(gshare, btb5));
         pl.run(uiter);
-        assertEquals(1304 + 2, pl.getCycles());
+        assertEquals(5000 / (double) (7230 + 2),
+                     pl.getInsns() / (double) pl.getCycles(), 0.01);
     }
 
     //add more tests here!
