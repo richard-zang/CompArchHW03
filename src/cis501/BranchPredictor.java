@@ -22,10 +22,11 @@ public class BranchPredictor {
         assert 0 == (pc & 0x1) : "lsb of PC should always be 0 for ARM";
         final long predictorIndex = pc >> 1;
         long btbTarget = btb.predict(predictorIndex);
+        Direction d = dp.predict(predictorIndex);
+
         // if it's not a (taken) branch, just predict fallthroughPC
         if (0 == btbTarget) return fallthroughPC;
 
-        Direction d = dp.predict(predictorIndex);
         switch (d) {
         case Taken:
             return btbTarget;

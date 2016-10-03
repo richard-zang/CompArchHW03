@@ -200,7 +200,7 @@ public class BranchPredSampleTest {
 
     // Trace tests: actual IPCs for streamcluster-10M-v1.trace.gz with the always/never-taken
     // predictors and zero additional memory latency.
-    /*    @Test
+    /*@Test
     public void testAlwaysTakenTrace() {
         final IDirectionPredictor always = new DirPredAlwaysTaken();
         final IBranchTargetBuffer bigBtb = new BranchTargetBuffer(10);
@@ -263,8 +263,8 @@ public class BranchPredSampleTest {
         assertEquals(4829 + 2, pl.getCycles());
     }
 
-        @Test
-    public void bimodalTraceFileTeste(){
+    @Test
+    public void bimodalTraceFileTest(){
         InsnIterator uiter = new InsnIterator(TRACE_FILE, 5000);
         IInorderPipeline pl = new InorderPipeline(1, new BranchPredictor(bimodal5, btb5));
         pl.run(uiter);
@@ -292,9 +292,9 @@ public class BranchPredSampleTest {
     }
 
     @Test
-    public void gshareTraceFileTestb() {
-        final IDirectionPredictor gshare = new DirPredGshare(5,5);
-        final IBranchTargetBuffer btb5 = new BranchTargetBuffer(5);
+    public void gshareTraceFileTest() {
+        final IDirectionPredictor gshare = new DirPredGshare(5,31);
+        final IBranchTargetBuffer bigBtb = new BranchTargetBuffer(5);
         InsnIterator uiter = new InsnIterator(TRACE_FILE, 876);
         IInorderPipeline pl = new InorderPipeline(1, new BranchPredictor(gshare, btb5));
         pl.run(uiter);

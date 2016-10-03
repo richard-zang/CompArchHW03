@@ -208,7 +208,7 @@ public class InorderPipeline implements IInorderPipeline {
                    xInsn.fallthroughPC();
 
                // Train on the first time only. Not anytime after that.
-               /*if(! branchStalling)*/ bp.train(xInsn.pc, actualNextPC, branchDir);
+               bp.train(xInsn.pc, actualNextPC, branchDir);
 
                // Stall if our prediction was wrong.
                boolean predictionCorrect = (branchDir == Direction.Taken) ?

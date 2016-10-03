@@ -2,6 +2,8 @@
 package cis501.submission;
 
 import cis501.Direction;
+import java.io.*;
+import java.util.*;
 
 public class DirPredGshare extends DirPredBimodal {
     //Branch History Register
@@ -16,6 +18,17 @@ public class DirPredGshare extends DirPredBimodal {
 
     @Override
     public Direction predict(long pc) {
+		if(hashedIndex(pc) == 19){
+			try {
+				BufferedWriter bw = new BufferedWriter(new FileWriter("info.txt", true));
+				bw.write("PREDICTING\n");
+				bw.write("PC: " + pc + "\n");
+				bw.write("HashedIndex: " + hashedIndex(pc) + "\n");
+				bw.flush();
+				bw.close();
+			}
+			catch(Exception e){}
+		}
         //Plug in the XORed PC into the Bimodal predictor.
         return super.predict(hashedIndex(pc));
     }
@@ -26,6 +39,18 @@ public class DirPredGshare extends DirPredBimodal {
 
     @Override
     public void train(long pc, Direction actual) {
+		if(hashedIndex(pc) == 19){
+			try {
+				BufferedWriter bw = new BufferedWriter(new FileWriter("info.txt", true));
+				bw.write("TRAINING\n");
+				bw.write("PC: " + pc + "\n");
+				bw.write("HashedIndex: " + hashedIndex(pc)  + "\n");
+				bw.write("Direction: " + ((actual == Direction.Taken) ? "Taken\n" : "Not Taken\n"));
+				bw.flush();
+				bw.close();
+			}
+			catch(Exception e){}
+		}
         if(actual == Direction.Taken){
             if(counterTable[hashedIndex(pc)] != T) counterTable[hashedIndex(pc)]++;
         }
