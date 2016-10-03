@@ -1,5 +1,6 @@
 package cis501.submission;
 
+import cis501.*;
 import cis501.Bypass;
 import cis501.IInorderPipeline;
 import cis501.Insn;
@@ -9,12 +10,16 @@ import org.junit.Test;
 
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Collection;
+import java.util.Set;
 
+import static cis501.Bypass.FULL_BYPASS;
 import static org.junit.Assert.assertEquals;
 
 public class InorderPipelineAllBypassTest {
 
     private static IInorderPipeline sim;
+    private static final String TRACE_FILE = "./streamcluster-10M-v1.trace.gz";
 
     private static Insn makeInsn(int dst, int src1, int src2, MemoryOp mop) {
         return new Insn(dst, src1, src2, 1, 4, null, 0, null,
@@ -714,6 +719,26 @@ public class InorderPipelineAllBypassTest {
 
         final long expected = 7;
         assertEquals(expected, sim.getCycles());
+    }
+
+    @Test
+    public void testFullTrace0(){
+        InsnIterator uiter = new InsnIterator(TRACE_FILE, 5000);
+        final Set<Bypass> fullbp = FULL_BYPASS;
+        IInorderPipeline sim = new cis501.submission.InorderPipeline(0, fullbp);
+        sim.run(uiter);
+        assertEquals(5000, sim.getInsns());
+        assertEquals(5428 + 2, sim.getCycles());
+    }
+
+    @Test
+    public void testFullTrace1(){
+        InsnIterator uiter = new InsnIterator(TRACE_FILE, 5000);
+        final Set<Bypass> fullbp = FULL_BYPASS;
+        IInorderPipeline sim = new cis501.submission.InorderPipeline(1, fullbp);
+        sim.run(uiter);
+        assertEquals(5000, sim.getInsns());
+        assertEquals(6868 + 2, sim.getCycles());
     }
 
 }

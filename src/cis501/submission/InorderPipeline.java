@@ -1,6 +1,5 @@
 package cis501.submission;
 
-
 import cis501.*;
 
 import java.util.Set;
@@ -9,8 +8,8 @@ import java.util.Queue;
 import java.util.LinkedList;
 
 /**
- * Note: Stages are declared in "reverse" order to simplify iterating over them in reverse order,
- * as the simulator does.
+ * Note: Stages are declared in "reverse" order to simplify iterating over them in
+ * reverse order, as the simulator does.
  */
 enum Stage {
     WRITEBACK(4), MEMORY(3), EXECUTE(2), DECODE(1), FETCH(0);
@@ -38,12 +37,12 @@ public class InorderPipeline implements IInorderPipeline {
     /**
      * Create a new pipeline with the given additional memory latency.
      *
-     * @param additionalMemLatency The number of extra cycles mem insns require in the M stage. If
-     *                             0, mem insns require just 1 cycle in the M stage, like all other
-     *                             insns. If x, mem insns require 1+x cycles in the M stage.
-     * @param bypasses             Which bypasses should be modeled. For example, if this is an
-     *                             empty set, then your pipeline should model no bypassing, using
-     *                             stalling to resolve all data hazards.
+     * @param additionalMemLatency: The number of extra cycles mem insns require in the
+     * M stage. If 0, mem insns require just 1 cycle in the M stage, like all other insns.
+     * If x, mem insns require 1+x cycles in the M stage.
+     * @param bypasses: Which bypasses should be modeled. For example, if this is an empty
+     * set, then your pipeline should model no bypassing, using stalling to resolve all
+     * data hazards.
      */
     public InorderPipeline(int additionalMemLatency, Set<Bypass> bypasses) {
         this.additionalMemLatency = additionalMemLatency;
@@ -53,11 +52,10 @@ public class InorderPipeline implements IInorderPipeline {
         instructionCount = 0;
         cycleCount = 0;
     }
-
+    //====================================================================================
     /**
-     * Create a new pipeline with the additional memory latency and branch predictor. The pipeline
-     * should model full bypassing (MX, Wx, WM).
-     *
+     * Create a new pipeline with the additional memory latency and branch predictor. The
+     * pipeline should model full bypassing (MX, Wx, WM).
      * @param additionalMemLatency see InorderPipeline(int, Set<Bypass>)
      * @param bp                   the branch predictor to use
      */
@@ -72,7 +70,7 @@ public class InorderPipeline implements IInorderPipeline {
 
         return;
     }
-
+    //====================================================================================
     private int additionalMemLatency;
     private Set<Bypass> bypasses;
     private Insn[] latches;
@@ -99,32 +97,32 @@ public class InorderPipeline implements IInorderPipeline {
         At most we may want to know what was predicted for the past 3 instructions.
         So we keep this information in our queue of fun. */
     private Queue<Long> predictedPC = new LinkedList<>();
-
+    //====================================================================================
     private boolean latchesEmpty(){
         for(int i = 0; i < 5; i++){
             if(latches[i] != null) return false;
         }
         return true;
     }
-
+    //====================================================================================
     private void clearLatch(Stage s){
         latches[s.i()] = null;
     }
-
+    //====================================================================================
     private Insn getLatch(Stage s){
         return latches[s.i()];
     }
-
+    //====================================================================================
     private void assignLatch(Stage s1, Stage s2){
         latches[s1.i()] = latches[s2.i()];
         return;
     }
-
+    //====================================================================================
     private void assignLatch(Stage s1, Insn insn){
         latches[s1.i()] = insn;
         return;
     }
-
+    //====================================================================================
     /**
      * Main function to check if an instruction can move forward in the pipeline.
      * updates latches as well as clears latches based on values of
@@ -168,7 +166,6 @@ public class InorderPipeline implements IInorderPipeline {
                 // Call branch predictor on our new instruction. Attempt to find
                 // whether it's a branch and whether it's taken/not taken.
                 if(branchPredictionOn){
-                    //System.out.println("[" + cycleCount + "]: Added: " + bp.predict(fetchInsn.pc, fetchInsn.fallthroughPC()) + " Current PC: " + fetchInsn.pc);
                     predictedPC.add(bp.predict(fetchInsn.pc, fetchInsn.fallthroughPC()));
                 }
             }
@@ -177,7 +174,7 @@ public class InorderPipeline implements IInorderPipeline {
             }
         }
     }
-
+    //====================================================================================
     private void checkDelays(){
         Insn wInsn = getLatch(Stage.WRITEBACK);
         Insn mInsn = getLatch(Stage.MEMORY);
@@ -204,19 +201,23 @@ public class InorderPipeline implements IInorderPipeline {
            long thisPredictedPC = predictedPC.peek();
 
            // We have a branch! Train and check for branch mispredictions.
-           if(xInsn.branch != null){
+           Direction branchDir = xInsn.branch;
+           if(branchDir != null){
+               long actualNextPC = (branchDir == Direction.Taken) ?
+                   xInsn.branchTarget :
+                   xInsn.fallthroughPC();
+
                // Train on the first time only. Not anytime after that.
-               /*if(!branchStalling)*/bp.train(xInsn.pc, xInsn.branchTarget, xInsn.branch);
+               /*if(! branchStalling)*/ bp.train(xInsn.pc, actualNextPC, branchDir);
 
                // Stall if our prediction was wrong.
-               boolean predictionCorrect = xInsn.branch == Direction.NotTaken ?
-                   thisPredictedPC == xInsn.fallthroughPC() :
-                   thisPredictedPC == xInsn.branchTarget;
+               boolean predictionCorrect = (branchDir == Direction.Taken) ?
+                   thisPredictedPC == xInsn.branchTarget :
+                   thisPredictedPC == xInsn.fallthroughPC();
 
                // We are stalling but are stuck because of a memory stall.
                // We don't want to restart the timer.
                if(!predictionCorrect && !branchStalling){
-                   System.out.println("Stalling at: [" + cycleCount + "]");
                    currentBranchTimer = 0;
                    branchStalling = true;
                }
@@ -226,6 +227,9 @@ public class InorderPipeline implements IInorderPipeline {
 
         if(branchPredictionOn)
             dInsnCanAdvanceBranch = (currentBranchTimer >= branchStallTime);
+        // We are stalling due to a branch misprediction. These instructions
+        // should not be here yet, so ignore any sort of dependency that could happen.
+        if(!dInsnCanAdvanceBranch) return;
 
         //DECODE
         //DECODE may be unable to move to the next stage due to load-to-use issues.
@@ -262,7 +266,7 @@ public class InorderPipeline implements IInorderPipeline {
         //FETCH
         //FETCH will never cause a stall.
     }
-
+    //====================================================================================
     /**
      * Returns whether we have some data dependency between two instructions
      * on the latches.
@@ -280,12 +284,12 @@ public class InorderPipeline implements IInorderPipeline {
 
         return (srcToDst || loadCase);
     }
-
+    //====================================================================================
     @Override
     public String[] groupMembers() {
         return new String[]{"rtian/Richard Zang", "Omar Navarro Leija"};
     }
-
+    //====================================================================================
     @Override
     public void run(Iterable<Insn> ii) {
         Iterator<Insn> instructionIterator = ii.iterator();
@@ -298,14 +302,15 @@ public class InorderPipeline implements IInorderPipeline {
             cycleCount++;
         }
     }
-
+    //====================================================================================
     @Override
     public long getInsns() {
         return instructionCount;
     }
-
+    //====================================================================================
     @Override
     public long getCycles() {
         return cycleCount;
     }
+    //====================================================================================
 }

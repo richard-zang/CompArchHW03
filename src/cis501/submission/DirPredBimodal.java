@@ -21,7 +21,9 @@ public class DirPredBimodal implements IDirectionPredictor {
 
     @Override
     public Direction predict(long pc) {
-        return (counterTable[maskedPC(pc)] > f) ? Direction.Taken : Direction.NotTaken;
+        Direction dir = (counterTable[maskedPC(pc)] > f) ?
+            Direction.Taken : Direction.NotTaken;
+        return dir;
     }
 
     //The mask should contain indexBits number of 1s.
@@ -40,5 +42,13 @@ public class DirPredBimodal implements IDirectionPredictor {
         else {
             if(counterTable[maskedPC(pc)] != F) counterTable[maskedPC(pc)]--;
         }
+    }
+
+    public void printAll(){
+        for(int i = 0; i < counterTable.length; i++){
+            System.out.println("[" + i + "] PC: " + counterTable[i]);
+
+        }
+                return;
     }
 }

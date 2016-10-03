@@ -19,6 +19,8 @@ import static org.junit.Assert.assertEquals;
 @RunWith(Enclosed.class)
 public class InorderPipelineFullTest {
 
+    private static final String TRACE_FILE = "./streamcluster-10M-v1.trace.gz";
+
     private static Insn makeInsn(int dst, int src1, int src2, MemoryOp mop) {
         return new Insn(dst, src1, src2,
                 1, 4,
@@ -187,6 +189,7 @@ public class InorderPipelineFullTest {
             final long expected = 6 + (2 * ADDL_MEM_LAT) + 2;
             assertEquals(MSG, expected, sim.getCycles());
         }
+
     }
 
 }
