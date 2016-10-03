@@ -271,10 +271,10 @@ public class BranchPredSampleTest {
     public void gshareTraceFileTestb() {
         final IDirectionPredictor gshare = new DirPredGshare(5,5);
         final IBranchTargetBuffer bigBtb = new BranchTargetBuffer(5);
-        InsnIterator uiter = new InsnIterator(TRACE_FILE, 876);
+        InsnIterator uiter = new InsnIterator(TRACE_FILE, 275); //orig was 876
         IInorderPipeline pl = new InorderPipeline(1, new BranchPredictor(gshare, bigBtb));
         pl.run(uiter);
-        assertEquals(1304 + 2, pl.getCycles());
+        assertEquals(397 + 2, pl.getCycles());//orig was 1304
     }
 
     //add more tests here!

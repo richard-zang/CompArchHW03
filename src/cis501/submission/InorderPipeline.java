@@ -91,6 +91,7 @@ public class InorderPipeline implements IInorderPipeline {
     private final int branchStallTime = 2;
 
     private boolean branchStalling = false;
+	private boolean insnUsedForTraining = false;
 
     BranchPredictor bp = null;
     private boolean branchPredictionOn = false;
@@ -147,6 +148,7 @@ public class InorderPipeline implements IInorderPipeline {
             currentMemoryTimer = 0;
             clearLatch(Stage.EXECUTE);
             branchStalling = false;
+			insnUsedForTraining = false;
         }
 
         //DECODE
@@ -206,8 +208,10 @@ public class InorderPipeline implements IInorderPipeline {
            // We have a branch! Train and check for branch mispredictions.
            if(xInsn.branch != null){
                // Train on the first time only. Not anytime after that.
-               /*if(!branchStalling)*/bp.train(xInsn.pc, xInsn.branchTarget, xInsn.branch);
-
+               if(!insnUsedForTraining){
+					bp.train(xInsn.pc, xInsn.branchTarget, xInsn.branch);
+					insnUsedForTraining = true;
+				}
                // Stall if our prediction was wrong.
                boolean predictionCorrect = xInsn.branch == Direction.NotTaken ?
                    thisPredictedPC == xInsn.fallthroughPC() :
