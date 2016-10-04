@@ -4,7 +4,7 @@ import cis501.*;
 
 import java.io.IOException;
 
-public class TraceRunner {
+public class TraceRunner{
 
     public static void main(String[] args) throws IOException {
         final int insnLimit;
@@ -20,22 +20,34 @@ public class TraceRunner {
             System.err.println("Usage: path/to/trace-file [insn-limit]");
             return;
         }
-        runPipe(0, insnLimit, args[0]);
-        runPipe(1, insnLimit, args[0]);
-        runPipe(2, insnLimit, args[0]);
-        runPipe(3, insnLimit, args[0]);
-        runPipe(4, insnLimit, args[0]);
-        runPipe(5, insnLimit, args[0]);
+
+        /*        for(int i = 4; i <= 18; i++){
+            IDirectionPredictor bimodal = new DirPredBimodal(i);
+            runPrediction(args[0], bimodal, i, "bimodal");
+        }
+        for(int i = 4; i <= 18; i++){
+             IDirectionPredictor gshare = new DirPredGshare(i, i);
+            runPrediction(args[0], gshare, i, "gshare");
+            }*/
+
+        for(int i = 4; i <= 18; i++){
+            IDirectionPredictor bimodal = new DirPredBimodal(i - 2);
+            IDirectionPredictor gshare = new DirPredGshare(i - 1 , i - 1);
+            IDirectionPredictor tourn = new DirPredTournament(i - 2, bimodal, gshare);
+            runPrediction(args[0], tourn, i, "tournament");
+        }
     }
 
-    public static void runPipe(int latency,int insnLimit, String fileName){
-        InorderPipeline pipe = new InorderPipeline(latency, Bypass.FULL_BYPASS);
-        InsnIterator uiter = new InsnIterator(fileName, insnLimit);
+    public static void runPrediction(String fileName, IDirectionPredictor p, int i,
+                                     String testName){
+        IBranchTargetBuffer btb = new BranchTargetBuffer(i);
+        InorderPipeline pipe = new InorderPipeline(1, new BranchPredictor(p, btb));
+        InsnIterator uiter = new InsnIterator(fileName, -1);
         pipe.run(uiter);
-        System.out.println("Cycles [" + latency + "]: " + pipe.getCycles());
-        System.out.println("Insn [" + latency + "]: " + pipe.getInsns());
+        System.out.println("Insn\t" + i + "\t" + pipe.getInsns());
+        System.out.println("Cycles\t" + i + "\t" + pipe.getCycles());
         float ipc =  pipe.getInsns() / (float) pipe.getCycles();
-        System.out.println("IPC [" + latency + "]: " + ipc);
+        System.out.println("IPC\t" + i + "\t" + ipc);
     }
 }
 
