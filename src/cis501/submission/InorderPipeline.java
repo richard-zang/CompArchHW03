@@ -70,6 +70,10 @@ public class InorderPipeline implements IInorderPipeline {
 
         return;
     }
+
+    public InorderPipeline(BranchPredictor bp, ICache ic, ICache dc){
+    }
+
     //====================================================================================
     private int additionalMemLatency;
     private Set<Bypass> bypasses;
