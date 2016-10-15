@@ -34,6 +34,7 @@ public class Cache implements ICache {
 			for(int i = 0; i < ways; i++){
 				if((tag[i] == address) && (valid[i] == true)){
 					block = i;
+					break;
 				}
 			}
 			return block;
@@ -89,7 +90,7 @@ public class Cache implements ICache {
 					return i;
 				}
 			}
-		return -1;
+			return -1;
 		}
 		protected int load(long address){
 			if(this.containsBlock(address)){
@@ -99,7 +100,7 @@ public class Cache implements ICache {
 			}
 			else {
 				int cost = this.evictIfNeeded(address);
-				int way = this.findBlock(address);
+				int way = this.emptyWay();
 				this.setTag(way, address);
 				this.setValid(way, true);
 				this.updateLRU(way);
@@ -115,7 +116,7 @@ public class Cache implements ICache {
 			}
 			else {
 				int cost = this.evictIfNeeded(address);
-				int way = this.findBlock(address);
+				int way = this.emptyWay();
 				this.setTag(way, address);
 				this.setValid(way, true);
 				this.setDirty(way, true);
