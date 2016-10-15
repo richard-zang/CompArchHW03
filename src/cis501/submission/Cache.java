@@ -10,7 +10,7 @@ public class Cache implements ICache {
 	protected int hitLatency;
 	protected int cleanMissLatency;
 	protected int dirtyMissLatency;
-
+	protected int rows;
 
 	protected CacheSet[] arrayCacheSets;
 
@@ -21,18 +21,23 @@ public class Cache implements ICache {
 		protected int[] lru;
 		private boolean[] valid;
 		protected boolean[] dirty;
+		private int nonTagBits;
 
-		public CacheSet(int ways){
+		public CacheSet(int ways, int blockOffsetBits, int indexBits){
 			this.ways = ways;
 			tag = new long[ways];
 			valid = new boolean[ways];
 			dirty = new boolean[ways];
 			lru = new int[ways];
+			nonTagBits = blockOffsetBits + indexBits;
+		}
+		private long getTag(long address){
+			return address >> this.nonTagBits;
 		}
 		protected int findBlock(long address){
 			int block = -1;
 			for(int i = 0; i < ways; i++){
-				if((tag[i] == address) && (valid[i] == true)){
+				if((tag[i] == this.getTag(address)) && (valid[i] == true)){
 					block = i;
 					break;
 				}
@@ -40,7 +45,7 @@ public class Cache implements ICache {
 			return block;
 		}
 		protected void setTag(int way, long address){
-			tag[way] = address;
+			tag[way] = this.getTag(address);
 		}
 		protected void setValid(int way, boolean isValid){
 			valid[way] = isValid;
@@ -146,16 +151,15 @@ public class Cache implements ICache {
 		this.hitLatency = hitLatency;
 		this.cleanMissLatency = cleanMissLatency;
 		this.dirtyMissLatency = dirtyMissLatency;
-
-		int numRows = 1 << indexBits;
-		arrayCacheSets = new CacheSet[numRows];
+		rows = 1 << indexBits;
+		arrayCacheSets = new CacheSet[rows];
 		for(int i = 0; i < arrayCacheSets.length; i++){
-			arrayCacheSets[i] = new CacheSet(ways);
+			arrayCacheSets[i] = new CacheSet(ways, blockOffsetBits, indexBits);
 		}
     }
 
 	public int getIndexBits(long address){
-		int indexBitsMask = (2 << indexBits) - 1;
+		int indexBitsMask = (1 << indexBits) - 1;
 		return (int)(address >> blockOffsetBits) & indexBitsMask;
 	}
     @Override
@@ -165,7 +169,6 @@ public class Cache implements ICache {
 		if(blockOffsetBits == 0){
 			return cleanMissLatency;
 		}
-
 		CacheSet set = arrayCacheSets[getIndexBits(address)];
 		if(load){
 			return set.load(address);
