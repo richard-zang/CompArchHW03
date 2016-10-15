@@ -92,34 +92,34 @@ public class Cache implements ICache {
 		return -1;
 		}
 		protected int load(long address){
-			if(set.containsBlock(address)){
-				int way = set.findBlock(address);
-				set.updateLRU(way);
+			if(this.containsBlock(address)){
+				int way = this.findBlock(address);
+				this.updateLRU(way);
 				return hitLatency;
 			}
 			else {
-				int cost = set.evictIfNeeded(address);
-				int way = set.findBlock(address);
-				set.setTag(way, address);
-				set.setValid(way, true);
-				set.updateLRU(way);
+				int cost = this.evictIfNeeded(address);
+				int way = this.findBlock(address);
+				this.setTag(way, address);
+				this.setValid(way, true);
+				this.updateLRU(way);
 				return cost;
 			}
 		}
 		protected int store(long address){
-			if(set.containsBlock(address)){
-				int way = set.findBlock(address);
-				set.setDirty(way, true);
-				set.updateLRU(way);
+			if(this.containsBlock(address)){
+				int way = this.findBlock(address);
+				this.setDirty(way, true);
+				this.updateLRU(way);
 				return hitLatency;
 			}
 			else {
-				int cost = set.evictIfNeeded(address);
-				int way = set.findBlock(address);
-				set.setTag(way, address);
-				set.setValid(way, true);
-				set.setDirty(way, true);
-				set.updateLRU(way);
+				int cost = this.evictIfNeeded(address);
+				int way = this.findBlock(address);
+				this.setTag(way, address);
+				this.setValid(way, true);
+				this.setDirty(way, true);
+				this.updateLRU(way);
 				return cost;
 			}
 		}
