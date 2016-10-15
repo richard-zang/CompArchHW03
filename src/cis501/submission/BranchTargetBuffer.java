@@ -1,6 +1,7 @@
 package cis501.submission;
 
 import cis501.IBranchTargetBuffer;
+import java.util.Arrays;
 
 public class BranchTargetBuffer implements IBranchTargetBuffer {
 

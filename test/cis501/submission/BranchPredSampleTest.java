@@ -200,6 +200,7 @@ public class BranchPredSampleTest {
 
     // Trace tests: actual IPCs for streamcluster-10M-v1.trace.gz with the always/never-taken
     // predictors and zero additional memory latency.
+    /*
     @Test
     public void testAlwaysTakenTrace() {
         final IDirectionPredictor always = new DirPredAlwaysTaken();
@@ -208,7 +209,7 @@ public class BranchPredSampleTest {
         IInorderPipeline pl = new InorderPipeline(0, new BranchPredictor(always, bigBtb));
         pl.run(uiter);
         assertEquals(0.96, pl.getInsns() / (double) pl.getCycles(), 0.01);
-    }
+        }*/
 
     /*@Test
     public void testNeverTakenTrace() {
@@ -260,7 +261,7 @@ public class BranchPredSampleTest {
                      pl.getInsns() / (double) pl.getCycles(),
                      0.01);
     }
-
+    /*
     @Test
     public void gshareTraceFileTest(){
         final IDirectionPredictor gshare = new DirPredGshare(5,31);
@@ -270,7 +271,7 @@ public class BranchPredSampleTest {
         pl.run(uiter);
         assertEquals(5000 / (double) (7230 + 2),
                      pl.getInsns() / (double) pl.getCycles(), 0.01);
-    }
+                     }*/
 
     //add more tests here!
 }

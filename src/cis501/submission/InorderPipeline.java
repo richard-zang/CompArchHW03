@@ -87,13 +87,12 @@ public class InorderPipeline implements IInorderPipeline {
     private long cycleCount;
     private boolean mInsnCanAdvance;
     /** Decode instruction can't advance due to data hazards. */
-    private boolean dInsnCanAdvance = false;
+    private boolean dInsnCanAdvance = true;
     /** Decode instruction can't advance due to branch mispredictions. */
     private boolean dInsnCanAdvanceBranch;
     private final int branchStallTime = 2;
 
     private boolean branchStalling = false;
-    private boolean insnUsedForTraining = false;
 
     BranchPredictor bp = null;
     private boolean branchPredictionOn = false;
@@ -150,13 +149,25 @@ public class InorderPipeline implements IInorderPipeline {
             currentMemoryTimer = 0;
             clearLatch(Stage.EXECUTE);
             branchStalling = false;
-            insnUsedForTraining = false;
         }
 
         //DECODE
         if(dInsnCanAdvance && dInsnCanAdvanceBranch && getLatch(Stage.EXECUTE) == null){
             assignLatch(Stage.EXECUTE, Stage.DECODE);
             clearLatch(Stage.DECODE);
+
+            // Instruction has been moded to execute, train best on direction.
+            Insn xInsn = getLatch(Stage.EXECUTE);
+            if(xInsn != null && branchPredictionOn){
+                long actualNextPC = (xInsn.branch == Direction.Taken) ?
+                    xInsn.branchTarget :
+                    xInsn.fallthroughPC();
+
+                // Train on the first time only. Not anytime after that.
+                if(!branchStalling){
+                    bp.train(xInsn.pc, actualNextPC, xInsn.branch);
+                }
+            }
         }
 
         //FETCH
@@ -201,38 +212,27 @@ public class InorderPipeline implements IInorderPipeline {
         //EXECUTE
         // If this instruction was a branch, we know the correct address it jumped. We
         // check our prediction and stall if necessary.
-        dInsnCanAdvanceBranch = true;
-
         if(branchPredictionOn && xInsn != null){
-            long thisPredictedPC = predictedPC.peek();
-
             // We have a branch! Train and check for branch mispredictions.
             Direction branchDir = xInsn.branch;
             if(branchDir != null){
-                long actualNextPC = (branchDir == Direction.Taken) ?
-                    xInsn.branchTarget :
-                    xInsn.fallthroughPC();
-
-                // Train on the first time only. Not anytime after that.
-                if(!branchStalling) bp.train(xInsn.pc, actualNextPC, branchDir);
-
                 // Stall if our prediction was wrong.
                 boolean predictionCorrect = (branchDir == Direction.Taken) ?
-                    thisPredictedPC == xInsn.branchTarget :
-                    thisPredictedPC == xInsn.fallthroughPC();
+                    predictedPC.peek() == xInsn.branchTarget :
+                    predictedPC.peek() == xInsn.fallthroughPC();
 
                 // We are stalling but are stuck because of a memory stall.
                 // We don't want to restart the timer.
                 if(!predictionCorrect && !branchStalling){
                     currentBranchTimer = 0;
+                    //trainBranch = true;
                     branchStalling = true;
                 }
             }
             if(mInsnCanAdvance) predictedPC.remove();
         }
 
-        if(branchPredictionOn)
-            dInsnCanAdvanceBranch = (currentBranchTimer >= branchStallTime);
+        dInsnCanAdvanceBranch = (currentBranchTimer >= branchStallTime);
         // We are stalling due to a branch misprediction. These instructions
         // should not be here yet, so ignore any sort of dependency that could happen.
         if(!dInsnCanAdvanceBranch) return;
