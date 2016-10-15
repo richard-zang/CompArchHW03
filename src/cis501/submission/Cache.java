@@ -91,6 +91,38 @@ public class Cache implements ICache {
 			}
 		return -1;
 		}
+		protected int load(long address){
+			if(set.containsBlock(address)){
+				int way = set.findBlock(address);
+				set.updateLRU(way);
+				return hitLatency;
+			}
+			else {
+				int cost = set.evictIfNeeded(address);
+				int way = set.findBlock(address);
+				set.setTag(way, address);
+				set.setValid(way, true);
+				set.updateLRU(way);
+				return cost;
+			}
+		}
+		protected int store(long address){
+			if(set.containsBlock(address)){
+				int way = set.findBlock(address);
+				set.setDirty(way, true);
+				set.updateLRU(way);
+				return hitLatency;
+			}
+			else {
+				int cost = set.evictIfNeeded(address);
+				int way = set.findBlock(address);
+				set.setTag(way, address);
+				set.setValid(way, true);
+				set.setDirty(way, true);
+				set.updateLRU(way);
+				return cost;
+			}
+		}
 	}
 
     public Cache(int indexBits, int ways, int blockOffsetBits,
@@ -125,42 +157,20 @@ public class Cache implements ICache {
 		int indexBitsMask = (2 << indexBits) - 1;
 		return (int)(address >> blockOffsetBits) & indexBitsMask;
 	}
-	//investigate what happens when blockoffsetbits = 0
-	//it should always fail and force memory fetch
     @Override
     public int access(boolean load, long address) {
+
+		//If no blocks exist, then we must always do a clean fetch.
+		if(blockOffsetBits == 0){
+			return cleanMissLatency;
+		}
+
 		CacheSet set = arrayCacheSets[getIndexBits(address)];
 		if(load){
-			if(set.containsBlock(address)){
-				int way = set.findBlock(address);
-				set.updateLRU(way);
-				return hitLatency;
-			}
-			else {
-				int cost = set.evictIfNeeded(address);
-				int way = set.findBlock(address);
-				set.setTag(way, address);
-				set.setValid(way, true);
-				set.updateLRU(way);
-				return cost;
-			}
+			return set.load(address);
 		}
 		else {
-			if(set.containsBlock(address)){
-				int way = set.findBlock(address);
-				set.setDirty(way, true);
-				set.updateLRU(way);
-				return hitLatency;
-			}
-			else {
-				int cost = set.evictIfNeeded(address);
-				int way = set.findBlock(address);
-				set.setTag(way, address);
-				set.setValid(way, true);
-				set.setDirty(way, true);
-				set.updateLRU(way);
-				return cost;
-			}
+			return set.store(address);
 		}
     }
 }
