@@ -71,7 +71,18 @@ public class InorderPipeline implements IInorderPipeline {
         return;
     }
 
-    public InorderPipeline(BranchPredictor bp, ICache ic, ICache dc){
+    public InorderPipeline(BranchPredictor bp, ICache insnCache, ICache dataCache){
+        this.bp = bp;
+        branchPredictionOn = true;
+        this.bypasses = Bypass.FULL_BYPASS;
+        this.insnCache = insnCache;
+        this.dataCache = dataCache;
+
+        latches = new Insn[5];
+        instructionCount = 0;
+        cycleCount = 0;
+
+        return;
     }
 
     //====================================================================================
@@ -96,6 +107,10 @@ public class InorderPipeline implements IInorderPipeline {
 
     BranchPredictor bp = null;
     private boolean branchPredictionOn = false;
+
+    /* Instruction and data caches for our data. */
+    ICache insnCache;
+    ICache dataCache;
 
     /** Prediction made during fetch of whether this instruction was a branch.
         At most we may want to know what was predicted for the past 3 instructions.
