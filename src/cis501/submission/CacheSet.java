@@ -106,18 +106,23 @@ public class CacheSet{
         return -1;
     }
     //==========================================================================
+    /**
+     * Return cache latency for a load.
+     */
     protected int load(long address){
         return doStoreLoad(address, false);
     }
     //==========================================================================
+    /**
+     * Return cache latency for a store.
+     */
     protected int store(long address){
         return doStoreLoad(address, true);
     }
     //==========================================================================
-    /*
-     * Stores have a bit of extra logic since we may have to
-     * write back data to higher caches. Otherwise they are the
-     * same.
+    /**
+     * Stores have a bit of extra logic since we may have to write back data to higher
+     * caches. Otherwise they are the same.
      */
     protected int doStoreLoad(long address, boolean store){
         if(this.containsBlock(address)){

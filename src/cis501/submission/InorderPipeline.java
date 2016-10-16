@@ -70,13 +70,21 @@ public class InorderPipeline implements IInorderPipeline {
 
         return;
     }
-
+    //====================================================================================
+    /**
+     * Create a new pipeline with the additional memory latency and branch predictor. The
+     * pipeline should model full bypassing (MX, Wx, WM).
+     * @param bp                   the branch predictor to use
+     * @param insnCache : cache of instructions.
+     * @param dataCache : cache of data.
+     */
     public InorderPipeline(BranchPredictor bp, ICache insnCache, ICache dataCache){
         this.bp = bp;
         branchPredictionOn = true;
         this.bypasses = Bypass.FULL_BYPASS;
         this.insnCache = insnCache;
         this.dataCache = dataCache;
+        cacheOn = true;
 
         latches = new Insn[5];
         instructionCount = 0;
@@ -92,18 +100,35 @@ public class InorderPipeline implements IInorderPipeline {
 
     /** Stalling counter for memory latency issues. */
     private int currentMemoryTimer;
-    private int currentBranchTimer;
+    private int currentCacheMemoryTimer = 0;
+    private int currentBranchTimer = 2;
 
     private long instructionCount;
     private long cycleCount;
+    /** Memory instruction can't advance due to data hazards. */
     private boolean mInsnCanAdvance;
+    /**
+     * A branch stall means we fetched too early, hence the cyles we stalled because
+     * of a fetch cache miss don't match. We must restart the timer when we find out
+     * it was a stall. We don't know how much we should have stalle by, so we keep
+     * track of that here.
+    */
+    private int cacheStallTime = 0;
+
     /** Decode instruction can't advance due to data hazards. */
     private boolean dInsnCanAdvance = true;
     /** Decode instruction can't advance due to branch mispredictions. */
     private boolean dInsnCanAdvanceBranch;
     private final int branchStallTime = 2;
-
     private boolean branchStalling = false;
+
+    /** Fetch instruction can't advance due to cache miss. */
+    private boolean fInsnCanAdvance = true;
+    private int currentFetchTimer = 0;
+    boolean newFetchInsn = false;
+    boolean newMemortyInsn = false;
+
+    private boolean cacheOn = false;
 
     BranchPredictor bp = null;
     private boolean branchPredictionOn = false;
@@ -162,6 +187,7 @@ public class InorderPipeline implements IInorderPipeline {
             // Move instruction along.
             assignLatch(Stage.MEMORY, Stage.EXECUTE);
             currentMemoryTimer = 0;
+            newMemortyInsn = true;
             clearLatch(Stage.EXECUTE);
             branchStalling = false;
         }
@@ -186,12 +212,13 @@ public class InorderPipeline implements IInorderPipeline {
         }
 
         //FETCH
-        if(getLatch(Stage.DECODE) == null){
+        if(getLatch(Stage.DECODE) == null && fInsnCanAdvance){
             assignLatch(Stage.DECODE, Stage.FETCH);
 
             // Get next instruction from list.
             if(instructionIterator.hasNext()){
                 assignLatch(Stage.FETCH, instructionIterator.next());
+                newFetchInsn = true;
                 Insn fetchInsn = getLatch(Stage.FETCH);
                 instructionCount++;
 
@@ -205,6 +232,7 @@ public class InorderPipeline implements IInorderPipeline {
                 clearLatch(Stage.FETCH);
             }
         }
+        return;
     }
     //====================================================================================
     private void checkDelays(){
@@ -212,49 +240,35 @@ public class InorderPipeline implements IInorderPipeline {
         Insn mInsn = getLatch(Stage.MEMORY);
         Insn xInsn = getLatch(Stage.EXECUTE);
         Insn dInsn = getLatch(Stage.DECODE);
-
+        Insn fInsn = getLatch(Stage.FETCH);
 
         //WRITEBACK
-        //No instruction in the WRITEBACK stage will ever stall.
+        // No instruction in the WRITEBACK stage will ever stall.
 
-        //MEMORY
-        //Instructions may stall due to memory latency.
-        mInsnCanAdvance = true;
-        if(mInsn != null && mInsn.mem != null)
-            mInsnCanAdvance = (currentMemoryTimer > additionalMemLatency);
+        //MEMORY: Can stall due to memory latency or cache misses.
+        memoryCheckDelays(mInsn);
 
+        //EXECUTE : We check for branch mispredictions at the execute stage!
+        executeCheckDelays(xInsn);
 
-        //EXECUTE
-        // If this instruction was a branch, we know the correct address it jumped. We
-        // check our prediction and stall if necessary.
-        if(branchPredictionOn && xInsn != null){
-            // We have a branch! Train and check for branch mispredictions.
-            Direction branchDir = xInsn.branch;
-            if(branchDir != null){
-                // Stall if our prediction was wrong.
-                boolean predictionCorrect = (branchDir == Direction.Taken) ?
-                    predictedPC.peek() == xInsn.branchTarget :
-                    predictedPC.peek() == xInsn.fallthroughPC();
-
-                // We are stalling but are stuck because of a memory stall.
-                // We don't want to restart the timer.
-                if(!predictionCorrect && !branchStalling){
-                    currentBranchTimer = 0;
-                    //trainBranch = true;
-                    branchStalling = true;
-                }
-            }
-            if(mInsnCanAdvance) predictedPC.remove();
-        }
-
-        dInsnCanAdvanceBranch = (currentBranchTimer >= branchStallTime);
         // We are stalling due to a branch misprediction. These instructions
         // should not be here yet, so ignore any sort of dependency that could happen.
         if(!dInsnCanAdvanceBranch) return;
 
-        //DECODE
-        //DECODE may be unable to move to the next stage due to load-to-use issues.
+        //DECODE: stall due to load-to-use issues.
+        decodeCheckDelays(dInsn, xInsn, mInsn);
 
+        // FETCH: can cause a stall if there the instruction is not in the intruction
+        // cache and has to be fetched!
+        fetchCheckDelays(fInsn);
+
+        return;
+    }
+    //====================================================================================
+    /*
+     * Check for all sorts of data hazards based on the bypasses avaliable.
+     */
+    private void decodeCheckDelays(Insn dInsn, Insn xInsn, Insn mInsn){
         // Check for any sort of dependency.
         boolean dxDep = dataDependecy(dInsn, xInsn);
         boolean dmDep = dataDependecy(dInsn, mInsn);
@@ -283,9 +297,81 @@ public class InorderPipeline implements IInorderPipeline {
             dxDep = false;
 
         dInsnCanAdvance = ! (dmDep || dxDep);
+        return;
+    }
+    //====================================================================================
+    /**
+     * If this instruction was a branch, we know the correct address it jumped. We
+     * check our prediction and stall via @currentBranchTimer.
+     */
+    private void executeCheckDelays(Insn xInsn){
+        if(branchPredictionOn && xInsn != null){
+            // We have a branch! Train and check for branch mispredictions.
+            Direction branchDir = xInsn.branch;
+            if(branchDir != null){
+                // Stall if our prediction was wrong.
+                boolean predictionCorrect = (branchDir == Direction.Taken) ?
+                    predictedPC.peek() == xInsn.branchTarget :
+                    predictedPC.peek() == xInsn.fallthroughPC();
 
-        //FETCH
-        //FETCH will never cause a stall.
+                // We are stalling but are stuck because of a memory stall.
+                // We don't want to restart the timer.
+                if(!predictionCorrect && !branchStalling){
+                    currentBranchTimer = 0;
+                    branchStalling = true;
+                    // Restart our timer. See @cacheStallTime.
+                    currentFetchTimer = cacheStallTime + 1;
+                }
+            }
+            if(mInsnCanAdvance) predictedPC.remove();
+        }
+
+        dInsnCanAdvanceBranch = (currentBranchTimer >= branchStallTime);
+        return;
+    }
+
+    //====================================================================================
+    /**
+     * Check for stalls due to memory latency and stalls by cache misses on the
+     * data cache and stall with @mInsnCanAdvance.
+     */
+    private void memoryCheckDelays(Insn mInsn){
+        mInsnCanAdvance = true;
+
+        // Instructions may stall due to memory latency.
+        if(mInsn != null && mInsn.mem != null)
+            mInsnCanAdvance = (currentMemoryTimer > additionalMemLatency);
+
+        // Instructions could also fail due to cache misses!
+        // If we have caching there won't be any additionalMemLatency.
+
+        // Non memory instruction, no chance for a cache miss.
+        if(mInsn != null && mInsn.mem != null && cacheOn){
+            if(newMemortyInsn){
+                boolean isLoad = (mInsn.mem == MemoryOp.Load) ? true : false;
+                currentCacheMemoryTimer = dataCache.access(isLoad, mInsn.pc);
+                newMemortyInsn = false;
+            }
+
+            mInsnCanAdvance = currentCacheMemoryTimer > 0 ? false : true;
+        }
+
+        return;
+    }
+    //====================================================================================
+    /**
+     * Check for cache misses on the instruction cache and stall with @fInsnCanAdvance.
+     */
+    private void fetchCheckDelays(Insn fInsn){
+        if(cacheOn && fInsn != null){
+            if(newFetchInsn){
+                currentFetchTimer = cacheStallTime = insnCache.access(true, fInsn.pc);
+                newFetchInsn = false;
+            }
+
+            fInsnCanAdvance = currentFetchTimer > 0 ? false : true;
+        }
+        return;
     }
     //====================================================================================
     /**
@@ -320,6 +406,8 @@ public class InorderPipeline implements IInorderPipeline {
 
             currentMemoryTimer++;
             currentBranchTimer++;
+            currentFetchTimer--;
+            currentCacheMemoryTimer--;
             cycleCount++;
         }
     }
