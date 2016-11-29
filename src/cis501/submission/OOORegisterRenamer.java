@@ -14,6 +14,7 @@ public class OOORegisterRenamer implements IOOORegisterRenamer {
     ArrayDeque<PhysReg> freeList;
     HashMap<Integer, PhysReg> mapTable;
     int NUM_PHYS_REGS;
+    ArrayDeque<ArrayDeque<PhysReg>> registerFreeOrder;
 
     public OOORegisterRenamer(int pregs) {
         freeList = new ArrayDeque<PhysReg>();
@@ -28,6 +29,7 @@ public class OOORegisterRenamer implements IOOORegisterRenamer {
                 freeList.add(phys_reg);
             }
         }
+        registerFreeOrder = new ArrayDeque<ArrayDeque<PhysReg>>();
     }
 
     @Override
@@ -59,14 +61,38 @@ public class OOORegisterRenamer implements IOOORegisterRenamer {
 
     @Override
     public void rename(Insn i, Map<Short, PhysReg> inputs, Map<Short, PhysReg> outputs) {
+
+        //If there is an output register then we need to make sure there is a free physical register.
+        int neededFreeRegisters = 0;
+        if(i.dstReg != -1){
+            neededFreeRegisters++;
+            while(this.availablePhysRegs() < neededFreeRegisters){
+                ArrayDeque<PhysReg> registerList = registerFreeOrder.remove();
+                for(PhysReg reg : registerList){
+                    this.freeReg(reg);
+                }
+            }
+        }
+        if(i.condCode != null && ((i.condCode == CondCodes.WriteCC) || (i.condCode == CondCodes.ReadWriteCC))){
+            neededFreeRegisters++;
+            while(this.availablePhysRegs() < neededFreeRegisters){
+                ArrayDeque<PhysReg> registerList = registerFreeOrder.remove();
+                for(PhysReg reg : registerList){
+                    this.freeReg(reg);
+                }
+            }
+        }
         if(i.srcReg1 != -1){
             inputs.put(i.srcReg1, this.a2p(i.srcReg1));
         }
         if(i.srcReg2 != -1){
             inputs.put(i.srcReg2, this.a2p(i.srcReg2));
         }
+
+        ArrayDeque<PhysReg> registerToFree = new ArrayDeque<PhysReg>();
+
         if(i.dstReg != -1){
-            this.freeReg(this.a2p(i.dstReg));
+            registerToFree.add(this.a2p(i.dstReg));
             outputs.put(i.dstReg, this.allocateReg(i.dstReg));
         }
         if(i.condCode != null){
@@ -75,16 +101,17 @@ public class OOORegisterRenamer implements IOOORegisterRenamer {
                     inputs.put(this.COND_CODE_ARCH_REG, this.a2p(this.COND_CODE_ARCH_REG));
                     break;
                 case WriteCC:
-                    this.freeReg(this.a2p(this.COND_CODE_ARCH_REG));
+                    registerToFree.add(this.a2p(this.COND_CODE_ARCH_REG));
                     outputs.put(this.COND_CODE_ARCH_REG, this.allocateReg(this.COND_CODE_ARCH_REG));
                     break;
                 case ReadWriteCC:
                     inputs.put(this.COND_CODE_ARCH_REG, this.a2p(this.COND_CODE_ARCH_REG));
-                    this.freeReg(this.a2p(this.COND_CODE_ARCH_REG));
+                    registerToFree.add(this.a2p(this.COND_CODE_ARCH_REG));
                     outputs.put(this.COND_CODE_ARCH_REG, this.allocateReg(this.COND_CODE_ARCH_REG));
                     break;
             }
         }
+        registerFreeOrder.add(registerToFree);
     }
 
 }
