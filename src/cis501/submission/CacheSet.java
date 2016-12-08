@@ -6,7 +6,7 @@ import java.util.*;
 public class CacheSet{
     private int ways;
     private long[] tag;
-    protected int[] lru;
+    protected long[] lru;
     private boolean[] valid;
     protected boolean[] dirty;
     private int nonTagBits;
@@ -21,7 +21,7 @@ public class CacheSet{
         tag = new long[ways];
         valid = new boolean[ways];
         dirty = new boolean[ways];
-        lru = new int[ways];
+        lru = new long[ways];
         nonTagBits = blockOffsetBits + indexBits;
 
         this.hitLatency = hitLatency;

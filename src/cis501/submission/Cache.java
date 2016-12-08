@@ -43,10 +43,6 @@ public class Cache implements ICache {
     @Override
     public int access(boolean load, long address) {
 
-        //If no blocks exist, then we must always do a clean fetch.
-        if(blockOffsetBits == 0){
-            return cleanMissLatency;
-        }
         CacheSet set = arrayCacheSets[getIndexBits(address)];
         if(load){
             return set.load(address);
