@@ -21,33 +21,41 @@ public class TraceRunner{
             return;
         }
 
-        /*        for(int i = 4; i <= 18; i++){
-            IDirectionPredictor bimodal = new DirPredBimodal(i);
-            runPrediction(args[0], bimodal, i, "bimodal");
-        }
-        for(int i = 4; i <= 18; i++){
-             IDirectionPredictor gshare = new DirPredGshare(i, i);
-            runPrediction(args[0], gshare, i, "gshare");
-            }*/
+        int[] levels = {1, 2, 4, 8, 16};
+        /* for associativity levels 1, 2, 4, 8 ,16... */
+        for(int way : levels){
+            /* For cache sizes */
+            for(int j = 9; j <= 18; j++){
+                int cacheSize = 2 << (j - 1);
+                System.out.println("associativity\t" + way);
+                System.out.println("cache size\t" + cacheSize);
 
-        for(int i = 4; i <= 18; i++){
-            IDirectionPredictor bimodal = new DirPredBimodal(i - 2);
-            IDirectionPredictor gshare = new DirPredGshare(i - 1 , i - 1);
-            IDirectionPredictor tourn = new DirPredTournament(i - 2, bimodal, gshare);
-            runPrediction(args[0], tourn, i, "tournament");
-        }
-    }
+                IBranchTargetBuffer btb = new BranchTargetBuffer(18);
+                IDirectionPredictor gshare = new DirPredGshare(18, 18);
 
-    public static void runPrediction(String fileName, IDirectionPredictor p, int i,
-                                     String testName){
-        IBranchTargetBuffer btb = new BranchTargetBuffer(i);
-        InorderPipeline pipe = new InorderPipeline(1, new BranchPredictor(p, btb));
-        InsnIterator uiter = new InsnIterator(fileName, -1);
-        pipe.run(uiter);
-        System.out.println("Insn\t" + i + "\t" + pipe.getInsns());
-        System.out.println("Cycles\t" + i + "\t" + pipe.getCycles());
-        float ipc =  pipe.getInsns() / (float) pipe.getCycles();
-        System.out.println("IPC\t" + i + "\t" + ipc);
+                /* Compute indexBits. */
+                BranchPredictor bp = new BranchPredictor(gshare, btb);
+                double log10bits = Math.log(cacheSize / (32 * way));
+                double indexBits = log10bits / Math.log(2);
+                System.out.println("Index bits: " + indexBits);
+                int blockBits = 5; //We want a fixed 32 byte blocks.
+
+                Cache cacheI = new Cache((int)indexBits, way, blockBits, 0, 2, 3);
+                Cache cacheD = new Cache((int)indexBits, way, blockBits, 0, 2, 3);
+                IInorderPipeline pipe = new InorderPipeline(bp, cacheI, cacheD);
+
+                /* Run pipe! */
+                InsnIterator uiter = new InsnIterator(args[0], -1);
+                pipe.run(uiter);
+                System.out.println("Insn\t" + "\t" + pipe.getInsns());
+                System.out.println("Cycles\t" + "\t" + pipe.getCycles());
+                float ipc =  pipe.getInsns() / (float) pipe.getCycles();
+                System.out.println("IPC\t" + "\t" + ipc);
+
+            }
+        }
+
+        return;
     }
 }
 

@@ -10,7 +10,7 @@ import java.util.List;
 import static org.junit.Assert.assertEquals;
 
 public class CacheSampleTest {
-
+    private static final String TRACE_FILE = "./streamcluster-10M-v1.trace.gz";
     private static final int HIT_LAT = 0;
     private static final int CLEAN_MISS_LAT = 2;
     private static final int DIRTY_MISS_LAT = 3;
@@ -231,6 +231,78 @@ public class CacheSampleTest {
         // f..dxmw     |
         //      f..dxmw|
         assertEquals(7 + (2 * CLEAN_MISS_LAT) + 2/*br mispred*/, pipe.getCycles());
+    }
+
+    /*
+     * Start of Stage timing tests based on stagetime trace files!
+     * We test within 2 percent.
+     */
+    @Test
+    public void firstStageTimingTest(){
+        IDirectionPredictor bimodal = new DirPredBimodal(10);
+        IBranchTargetBuffer btb = new BranchTargetBuffer(10);
+
+        /* Cache(INDEX_BITS, WAYS, BLOCK_BITS, HIT_LAT, CLEAN_MISS_LAT, DIRTY_MISS_LAT)*/
+        Cache dataCache = new Cache(10, 1, 2, 0, 2, 3);
+        Cache insnCache = new Cache(10, 1, 2, 0, 2, 3);
+
+        InsnIterator uiter = new InsnIterator(TRACE_FILE, 5000);
+        BranchPredictor bp = new BranchPredictor(bimodal, btb);
+        IInorderPipeline pl = new InorderPipeline(bp, insnCache, dataCache);
+        pl.run(uiter);
+        assertEquals(5000 / (double) (7626 + 2),
+                     pl.getInsns() / (double) pl.getCycles(), 0.02);
+    }
+
+    @Test
+    public void secondStageTimingTest(){
+        IDirectionPredictor bimodal = new DirPredBimodal(10);
+        IBranchTargetBuffer btb = new BranchTargetBuffer(10);
+
+        /* Cache(INDEX_BITS, WAYS, BLOCK_BITS, HIT_LAT, CLEAN_MISS_LAT, DIRTY_MISS_LAT)*/
+        Cache dataCache = new Cache(10, 2, 2, 0, 2, 3);
+        Cache insnCache = new Cache(10, 2, 2, 0, 2, 3);
+
+        InsnIterator uiter = new InsnIterator(TRACE_FILE, 5000);
+        BranchPredictor bp = new BranchPredictor(bimodal, btb);
+        IInorderPipeline pl = new InorderPipeline(bp, insnCache, dataCache);
+        pl.run(uiter);
+        assertEquals(5000 / (double) (6746 + 2),
+                     pl.getInsns() / (double) pl.getCycles(), 0.02);
+    }
+
+    @Test
+    public void thirdStageTimingTest(){
+        IDirectionPredictor never = new DirPredNeverTaken();
+        IBranchTargetBuffer btb = new BranchTargetBuffer(10);
+
+        /* Cache(INDEX_BITS, WAYS, BLOCK_BITS, HIT_LAT, CLEAN_MISS_LAT, DIRTY_MISS_LAT)*/
+        Cache dataCache = new Cache(10, 1, 2, 0, 2, 3);
+        Cache insnCache = new Cache(10, 1, 2, 0, 2, 3);
+
+        InsnIterator uiter = new InsnIterator(TRACE_FILE, 5000);
+        BranchPredictor bp = new BranchPredictor(never, btb);
+        IInorderPipeline pl = new InorderPipeline(bp, insnCache, dataCache);
+        pl.run(uiter);
+        assertEquals(5000 / (double) (8130 + 2),
+                     pl.getInsns() / (double) pl.getCycles(), 0.02);
+    }
+
+    @Test
+    public void fourStageTimingTest(){
+        IDirectionPredictor never = new DirPredNeverTaken();
+        IBranchTargetBuffer btb = new BranchTargetBuffer(10);
+
+        /* Cache(INDEX_BITS, WAYS, BLOCK_BITS, HIT_LAT, CLEAN_MISS_LAT, DIRTY_MISS_LAT)*/
+        Cache dataCache = new Cache(10, 2, 2, 0, 2, 3);
+        Cache insnCache = new Cache(10, 2, 2, 0, 2, 3);
+
+        InsnIterator uiter = new InsnIterator(TRACE_FILE, 5000);
+        BranchPredictor bp = new BranchPredictor(never, btb);
+        IInorderPipeline pl = new InorderPipeline(bp, insnCache, dataCache);
+        pl.run(uiter);
+        assertEquals(5000 / (double) (7402 + 2),
+                     pl.getInsns() / (double) pl.getCycles(), 0.02);
     }
 
 }

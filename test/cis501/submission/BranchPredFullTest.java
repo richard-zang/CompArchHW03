@@ -722,7 +722,7 @@ public class BranchPredFullTest {
 
 
         @Test
-        public void testTrainBtb() {
+        public void statetimes1() {
             List<Insn> insns = new LinkedList<>();
             insns.add(makeBr(8, Direction.Taken, 4)); // mispredicted b/c BTB is empty
             insns.add(makeOp(3, 1, 2, null, 4));
