@@ -1272,6 +1272,20 @@ public class OOOSampleTest {
             assertEquals(0, lsq.executeLoad(l, 0xA));
         }
 
+        @Test
+        public void test28() {
+            StoreHandle s0 = lsq.dispatchStore(1);
+            StoreHandle s1 = lsq.dispatchStore(1);
+            LoadHandle l = lsq.dispatchLoad(1);
+
+            assertTrue(lsq.executeStore(s0, 0xA, 100).isEmpty());
+            assertEquals(100, lsq.executeLoad(l, 0xA));
+            Collection<? extends LoadHandle> squashed = lsq.executeStore(s1, 0xA, 100);
+            assertTrue(squashed.contains(l));
+            assertEquals(1, squashed.size());
+        }
+
+
 
         // MULTI-BYTE TESTS
 
@@ -1316,6 +1330,151 @@ public class OOOSampleTest {
             assertTrue(lsq.executeStore(lsq.dispatchStore(1), 0x9, 0x22).isEmpty());
             assertTrue(lsq.executeStore(lsq.dispatchStore(1), 0xB, 0x44).isEmpty());
             assertEquals(0x11220044, lsq.executeLoad(lsq.dispatchLoad(4), 0x8));
+        }
+
+        @Test
+        public void testMultiByte6() {
+            StoreHandle store1 = lsq.dispatchStore(2);
+            StoreHandle store2 = lsq.dispatchStore(1);
+            LoadHandle load = lsq.dispatchLoad(2);
+
+            assertEquals(0, lsq.executeLoad(load, 0xA));
+
+            Collection<? extends LoadHandle> squashed = lsq.executeStore(store2, 0xA, 0x33);
+            assertTrue(squashed.contains(load));
+            assertEquals(1, squashed.size());
+
+            squashed = lsq.executeStore(store1, 0xA, 0x1122);
+            assertTrue(squashed.contains(load));
+            assertEquals(1, squashed.size());
+        }
+
+        @Test
+        public void omarTest1() {
+            assertTrue(lsq.executeStore(lsq.dispatchStore(4), 0xA, 0x11223344).isEmpty());
+            assertTrue(lsq.executeStore(lsq.dispatchStore(1), 0xB, 0x55).isEmpty());
+            assertTrue(lsq.executeStore(lsq.dispatchStore(1), 0xD, 0x66).isEmpty());
+            assertEquals(0x11553366, lsq.executeLoad(lsq.dispatchLoad(4), 0xA));
+        }
+
+        @Test
+        public void omarTest2() {
+            assertTrue(lsq.executeStore(lsq.dispatchStore(4), 0xA, 0x11223344).isEmpty());
+            assertTrue(lsq.executeStore(lsq.dispatchStore(1), 0xB, 0x55).isEmpty());
+            assertTrue(lsq.executeStore(lsq.dispatchStore(1), 0xD, 0x66).isEmpty());
+            assertTrue(lsq.executeStore(lsq.dispatchStore(1), 0xD, 0x77).isEmpty());
+            assertEquals(0x11553377, lsq.executeLoad(lsq.dispatchLoad(4), 0xA));
+        }
+
+        @Test
+        public void omarTest3() {
+            assertTrue(lsq.executeStore(lsq.dispatchStore(4), 0xA, 0x11223344).isEmpty());
+            assertTrue(lsq.executeStore(lsq.dispatchStore(1), 0xB, 0x55).isEmpty());
+            assertTrue(lsq.executeStore(lsq.dispatchStore(1), 0xD, 0x66).isEmpty());
+
+            StoreHandle store = lsq.dispatchStore(1);
+            LoadHandle load = lsq.dispatchLoad(4);
+
+            assertEquals(0x11553366, lsq.executeLoad(load, 0xA));
+
+            Collection<? extends LoadHandle> squashed =
+                lsq.executeStore(store, 0xD, 0x77);
+            assertTrue(squashed.contains(load));
+        }
+
+        @Test
+        public void omarTest4() {
+            assertTrue(lsq.executeStore(lsq.dispatchStore(4), 0xA, 0x11223344).isEmpty());
+            assertTrue(lsq.executeStore(lsq.dispatchStore(3), 0xB, 0x556677).isEmpty());
+            assertTrue(lsq.executeStore(lsq.dispatchStore(1), 0xD, 0x88).isEmpty());
+            LoadHandle load = lsq.dispatchLoad(4);
+            StoreHandle store = lsq.dispatchStore(1);
+
+            assertEquals(0x11556688, lsq.executeLoad(load, 0xA));
+
+            assertTrue(lsq.executeStore(store, 0xD, 0x77).isEmpty());
+        }
+
+        @Test
+        public void omarTest5() {
+            assertTrue(lsq.executeStore(lsq.dispatchStore(3), 0xA, 0x112233).isEmpty());
+            assertTrue(lsq.executeStore(lsq.dispatchStore(1), 0xD, 0x44).isEmpty());
+            LoadHandle load = lsq.dispatchLoad(4);
+            assertEquals(0x11223344, lsq.executeLoad(load, 0xA));
+        }
+
+        @Test
+        public void omarTest6() {
+            assertTrue(lsq.executeStore(lsq.dispatchStore(4), 0xA, 0x11223344).isEmpty());
+            LoadHandle load = lsq.dispatchLoad(1);
+            assertEquals(0x44, lsq.executeLoad(load, 0xD));
+        }
+
+        @Test
+        public void omarTest7() {
+            assertTrue(lsq.executeStore(lsq.dispatchStore(4), 0xA, 0x11223344).isEmpty());
+            assertTrue(lsq.executeStore(lsq.dispatchStore(1), 0xF, 0x55).isEmpty());
+            LoadHandle load = lsq.dispatchLoad(1);
+            assertEquals(0x55, lsq.executeLoad(load, 0xF));
+        }
+
+        @Test
+        public void omarTest8() {
+            assertTrue(lsq.executeStore(lsq.dispatchStore(4), 0xA, 0x11223344).isEmpty());
+            assertTrue(lsq.executeStore(lsq.dispatchStore(1), 0xF, 0x55).isEmpty());
+            LoadHandle load = lsq.dispatchLoad(1);
+            assertEquals(0x44, lsq.executeLoad(load, 0xD));
+        }
+
+        @Test
+        public void omarTest9() {
+            assertTrue(lsq.executeStore(lsq.dispatchStore(1), 0xF, 0x11).isEmpty());
+            LoadHandle load = lsq.dispatchLoad(1);
+            assertEquals(0x11, lsq.executeLoad(load, 0xF));
+        }
+
+        @Test
+        public void omarTest10() {
+            assertTrue(lsq.executeStore(lsq.dispatchStore(1), 0xF, 0x11).isEmpty());
+            LoadHandle load = lsq.dispatchLoad(2);
+            assertEquals(0x1100, lsq.executeLoad(load, 0xF));
+        }
+
+        @Test
+        public void omarTest11() {
+            assertTrue(lsq.executeStore(lsq.dispatchStore(1), 0x10, 0x11).isEmpty());
+            LoadHandle load = lsq.dispatchLoad(2);
+            assertEquals(0x0011, lsq.executeLoad(load, 0xF));
+        }
+
+        @Test
+        public void omarTest12() {
+            assertTrue(lsq.executeStore(lsq.dispatchStore(1), 0xF, 0x11).isEmpty());
+            assertTrue(lsq.executeStore(lsq.dispatchStore(1), 0xF, 0x22).isEmpty());
+            LoadHandle load = lsq.dispatchLoad(1);
+            assertEquals(0x22, lsq.executeLoad(load, 0xF));
+        }
+
+        @Test
+        public void omarTest13() {
+            assertTrue(lsq.executeStore(lsq.dispatchStore(2), 0xE, 0x1122).isEmpty());
+            assertTrue(lsq.executeStore(lsq.dispatchStore(1), 0xF, 0x33).isEmpty());
+            LoadHandle load = lsq.dispatchLoad(2);
+            assertEquals(0x1133, lsq.executeLoad(load, 0xE));
+        }
+
+        @Test
+        public void omarTest14() {
+            assertTrue(lsq.executeStore(lsq.dispatchStore(4), 0xA, 0x11223344).isEmpty());
+            StoreHandle l1 = lsq.dispatchStore(1);
+            StoreHandle l2 = lsq.dispatchStore(1);
+            StoreHandle l3 = lsq.dispatchStore(2);
+
+            LoadHandle load = lsq.dispatchLoad(4);
+            assertEquals(0x11223344, lsq.executeLoad(load, 0xA));
+            assertTrue(lsq.executeStore(l1, 0x9, 1).isEmpty());
+            assertTrue(lsq.executeStore(l2, 0xD, 1).contains(load));
+            assertTrue(lsq.executeStore(l3, 0x9, 1).contains(load));
         }
     }
 }
